@@ -1,12 +1,10 @@
 {
-  "projectId": "psyched-canto-7khlb",
-  "appId": "1:20635382693:web:ac0e5c71ae2320a46bae4c",
-  "apiKey": "AIzaSyDnlWEf8pVV-LAHzLQiHeHIcSKOfn1FXMk",
-  "authDomain": "psyched-canto-7khlb.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-ed605d2e-8530-47ea-a400-fbff28b5e80d",
-  "storageBucket": "psyched-canto-7khlb.firebasestorage.app",
-  "messagingSenderId": "20635382693",
-  "measurementId": "",
-  "oAuthClientId": "20635382693-entik1m29f1b7mknlgjqo9b36ep3rf7p.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "smart-cv-app",
+  "appId": "1:254593119872:web:738d38c421a4432d5e1865",
+  "apiKey": "AIzaSyBq-FGTO3dtFdMTxRb6iff_MVMHmQ2VEkA",
+  "authDomain": "smart-cv-app.firebaseapp.com",
+  "firestoreDatabaseId": "",
+  "storageBucket": "smart-cv-app.firebasestorage.app",
+  "messagingSenderId": "254593119872",
+  "measurementId": "G-PF8NC96HFG"
 }
