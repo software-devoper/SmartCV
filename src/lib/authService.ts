@@ -2,6 +2,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   sendPasswordResetEmail,
   deleteUser,
@@ -196,32 +198,103 @@ export async function loginWithUsername(username: string, password: string): Pro
 }
 
 /**
+ * Check if the current app is running inside an iframe.
+ */
+export function isAppInIframe(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch (e) {
+    return true;
+  }
+}
+
+/**
  * Google Sign In flow.
  * Checks if user has a configured username profile.
+ * Falls back to redirect if popup is blocked by browser/iframe.
  */
 export async function signInWithGooglePopup(): Promise<{
   user: User;
   needsUsername: boolean;
   profile: UserProfile | null;
 }> {
-  const userCredential = await signInWithPopup(auth, googleProvider);
-  const user = userCredential.user;
+  try {
+    const userCredential = await signInWithPopup(auth, googleProvider);
+    const user = userCredential.user;
 
-  // Check if profile exists with username
-  const existingProfile = await getUserProfile(user.uid);
-  if (existingProfile && existingProfile.username) {
+    // Check if profile exists with username
+    const existingProfile = await getUserProfile(user.uid);
+    if (existingProfile && existingProfile.username) {
+      return {
+        user,
+        needsUsername: false,
+        profile: existingProfile,
+      };
+    }
+
     return {
       user,
-      needsUsername: false,
-      profile: existingProfile,
+      needsUsername: true,
+      profile: null,
     };
+  } catch (error: any) {
+    console.error('Google Sign-In Popup error:', error);
+    
+    // If popup was blocked by browser or iframe sandbox
+    if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+      // If we are in top window, we can trigger signInWithRedirect automatically
+      if (!isAppInIframe()) {
+        console.log('Popup blocked in top window, attempting signInWithRedirect...');
+        await signInWithRedirect(auth, googleProvider);
+        // Will redirect away, execution halts
+        return new Promise(() => {});
+      } else {
+        throw new Error('Popups are blocked by the preview window or browser. Please open the app in a new browser tab to sign in with Google.');
+      }
+    }
+    
+    throw error;
   }
+}
 
-  return {
-    user,
-    needsUsername: true,
-    profile: null,
-  };
+/**
+ * Explicit Google Sign In via full page redirect.
+ */
+export async function signInWithGoogleRedirectFlow(): Promise<void> {
+  await signInWithRedirect(auth, googleProvider);
+}
+
+/**
+ * Process any pending redirect auth result upon page load.
+ */
+export async function checkGoogleRedirectResult(): Promise<{
+  user: User;
+  needsUsername: boolean;
+  profile: UserProfile | null;
+} | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result || !result.user) return null;
+
+    const user = result.user;
+    const existingProfile = await getUserProfile(user.uid);
+    if (existingProfile && existingProfile.username) {
+      return {
+        user,
+        needsUsername: false,
+        profile: existingProfile,
+      };
+    }
+
+    return {
+      user,
+      needsUsername: true,
+      profile: null,
+    };
+  } catch (error) {
+    console.error('Error handling redirect result:', error);
+    return null;
+  }
 }
 
 /**

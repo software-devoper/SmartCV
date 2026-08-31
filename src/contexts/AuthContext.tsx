@@ -9,6 +9,7 @@ import {
   sendPasswordReset,
   deleteUserAccount,
   getUserProfile,
+  checkGoogleRedirectResult,
 } from '../lib/authService';
 import { UserProfile } from '../types';
 
@@ -53,6 +54,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Check if coming back from a full-page Google redirect
+    checkGoogleRedirectResult().then((res) => {
+      if (res) {
+        if (res.needsUsername) {
+          setPendingGoogleUser(res.user);
+          setIsGoogleUsernameModalOpen(true);
+        } else if (res.profile) {
+          setUser(res.user);
+          setUserProfile(res.profile);
+        }
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {

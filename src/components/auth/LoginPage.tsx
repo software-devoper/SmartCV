@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { isAppInIframe } from '../../lib/authService';
 import {
   Sparkles,
   Eye,
@@ -11,6 +12,7 @@ import {
   KeyRound,
   CheckCircle2,
   X,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -67,7 +69,12 @@ export default function LoginPage() {
         navigate(fromPath, { replace: true });
       }
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
+      console.error('Google login error:', err);
+      if (err.code === 'auth/popup-closed-by-user') {
+        // User closed popup deliberately
+      } else if (err.code === 'auth/popup-blocked') {
+        setFormError('Popups are blocked by your browser or preview environment. Please open the app in a new tab to sign in with Google, or use username/password.');
+      } else {
         setFormError(err.message || 'Google sign in failed. Please try again.');
       }
     } finally {
@@ -160,9 +167,24 @@ export default function LoginPage() {
           </div>
 
           {formError && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{formError}</span>
+            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{formError}</span>
+              </div>
+              {(formError.includes('Popups') || formError.includes('popup') || isAppInIframe()) && (
+                <div className="pt-1 pl-6">
+                  <a
+                    href={window.location.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] shadow-sm transition-all"
+                  >
+                    <span>Open App in New Tab</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
