@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Deny all by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // User profile photos and resume assets scoped strictly under user's UID
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+                   && request.resource.contentType.matches('image/.*'); // Image files only
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

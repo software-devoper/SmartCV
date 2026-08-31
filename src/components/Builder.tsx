@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import ChatPanel from './ChatPanel';
 import PreviewPanel from './PreviewPanel';
 import { useCVStore } from '../store';
 import { exportToPDF } from '../utils/pdfExport';
-import { Download, GraduationCap, Briefcase, LayoutTemplate, PenLine, Eye, Sparkles } from 'lucide-react';
+import { Download, GraduationCap, Briefcase, LayoutTemplate, PenLine, Eye, Sparkles, Bot, ArrowLeft } from 'lucide-react';
 import TemplateGalleryModal from './TemplateGalleryModal';
 
-export default function Builder() {
+export default function Builder({ onSwitchToAIChat }: { onSwitchToAIChat?: () => void }) {
   const data = useCVStore(state => state.data);
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -55,12 +56,23 @@ export default function Builder() {
                   <header className="flex items-center justify-between px-3 sm:px-6 py-3 bg-white border-b border-slate-200/80 shadow-xs z-30 shrink-0">
         {/* Left: Brand Logo & Wordmark */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-blue-600 rounded-xl flex items-center justify-center shadow-xs shadow-blue-500/20 text-white font-bold text-lg sm:text-xl shrink-0">
-            <span>S</span>
-          </div>
+          <Link to="/dashboard" className="flex items-center gap-2 group" title="Return to Dashboard">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-blue-600 rounded-xl flex items-center justify-center shadow-xs shadow-blue-500/20 text-white font-bold text-lg sm:text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <span>S</span>
+            </div>
+            <div className="hidden sm:flex flex-col">
+              <span className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">SmartCV</span>
+            </div>
+          </Link>
+          
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">SmartCV</span>
+              <Link
+                to="/dashboard"
+                className="inline-flex sm:hidden text-lg font-extrabold tracking-tight text-slate-900 leading-none"
+              >
+                SmartCV
+              </Link>
               
               {/* Desktop Mode Pill */}
               <button 
@@ -118,6 +130,19 @@ export default function Builder() {
               />
             </div>
           </div>
+
+          {/* AI Chat Mode Button */}
+          {onSwitchToAIChat && (
+            <button
+              type="button"
+              onClick={onSwitchToAIChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              title="Open AI Resume Chat"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span className="hidden sm:inline">AI Chat Builder</span>
+            </button>
+          )}
 
           {/* Segmented Control (Icons only on very small screens, text on tablet) */}
           <div className="flex lg:hidden bg-slate-100 p-1 rounded-xl border border-slate-200">

@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Public read for username reservation checks and login resolution.
+    // Creation only by authenticated user claiming their own UID.
+    // Deletion only by the user that owns the mapping.
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // Multi-tenant user data isolation
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      match /chatSessions/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+
+        match /messages/{messageId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+    }
+  }
+}

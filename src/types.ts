@@ -143,3 +143,40 @@ export const studentSectionOrder = [
   "languages",
   "references"
 ];
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "ai";
+  content: string;
+  type: "full_generation" | "general_edit" | "segment_edit";
+  targetSegment?: string;
+  timestamp: number;
+  statusMessage?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  resumeData: CVData;
+  profilePhotoUrl?: string;
+}
+
+export interface UserProfile {
+  uid: string;
+  username: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface UsernameRecord {
+  uid: string;
+  email: string;
+  createdAt: number;
+}
+

@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile details including unique username, email, display name and avatar",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "uid",
+        "username",
+        "email",
+        "createdAt"
+      ]
+    },
+    "UsernameRecord": {
+      "title": "UsernameRecord",
+      "description": "Unique username-to-email mapping document for authentication lookup",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "createdAt"
+      ]
+    },
+    "ChatSession": {
+      "title": "ChatSession",
+      "description": "An AI resume chat session containing current resume data and settings",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "number"
+        },
+        "resumeData": {
+          "type": "object"
+        },
+        "profilePhotoUrl": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "createdAt",
+        "updatedAt",
+        "resumeData"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A single prompt or AI response in a chat session",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "user",
+            "ai"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 50000
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "full_generation",
+            "general_edit",
+            "segment_edit"
+          ]
+        },
+        "targetSegment": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "statusMessage": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "content",
+        "type",
+        "timestamp"
+      ]
+    }
+  },
+  "firestore": {
+    "/usernames/{username}": {
+      "schema": "UsernameRecord",
+      "description": "Public read username mapping collection for unique reservations and login resolution"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document containing authentication metadata and user configuration"
+    },
+    "/users/{userId}/chatSessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "User's individual resume generation and editing sessions"
+    },
+    "/users/{userId}/chatSessions/{sessionId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Messages inside a specific chat session"
+    }
+  }
+}

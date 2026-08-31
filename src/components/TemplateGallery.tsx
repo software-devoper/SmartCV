@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCVStore } from '../store';
 import { templates, TemplateDefinition } from '../templates/registry';
-import { FileText, Briefcase, GraduationCap, ArrowRight, Sparkles, Check } from 'lucide-react';
+import { FileText, Briefcase, GraduationCap, ArrowRight, Sparkles, Check, ArrowLeft } from 'lucide-react';
 import { CVData } from '../types';
 
 const dummyData: CVData = {
@@ -91,11 +92,17 @@ function GalleryThumbnail({ template }: { template: TemplateDefinition }) {
   );
 }
 
-export default function TemplateGallery() {
+export default function TemplateGallery({ onStartWithAIChat }: { onStartWithAIChat?: () => void }) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'student' | 'professional'>('student');
   const setTemplate = useCVStore(state => state.setTemplate);
 
   const filteredTemplates = templates.filter(t => t.type === activeTab);
+
+  const handleSelect = (templateId: string) => {
+    setTemplate(templateId, activeTab);
+    navigate('/builder');
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans">
@@ -103,14 +110,28 @@ export default function TemplateGallery() {
       <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-xs shadow-blue-500/20 text-white font-bold text-lg">
-              <span>S</span>
-            </div>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900">SmartCV</span>
+            <Link to="/dashboard" className="flex items-center gap-3 group">
+              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-xs shadow-blue-500/20 text-white font-bold text-lg group-hover:scale-105 transition-transform">
+                <span>S</span>
+              </div>
+              <span className="text-xl font-extrabold tracking-tight text-slate-900">SmartCV</span>
+            </Link>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            <span>AI-Assisted Resume Studio</span>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Dashboard</span>
+            </Link>
+            <Link
+              to="/chat"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Build with AI Chat</span>
+            </Link>
           </div>
         </div>
       </header>
@@ -169,8 +190,8 @@ export default function TemplateGallery() {
                 </div>
               </div>
               <button
-                onClick={() => setTemplate(template.id, activeTab)}
-                className="w-full py-2 bg-slate-900 group-hover:bg-blue-600 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                onClick={() => handleSelect(template.id)}
+                className="w-full py-2 bg-slate-900 group-hover:bg-blue-600 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <span>Use Template</span>
                 <ArrowRight className="w-3.5 h-3.5" />
