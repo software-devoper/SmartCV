@@ -1,18 +1,20 @@
 import React from 'react';
 import { useCVStore } from '../../store';
 import { Upload, X, User } from 'lucide-react';
+import { compressImage } from '../../utils/imageCompressor';
 
 export default function PhotoForm() {
   const { data, updateData } = useCVStore();
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateData({ photo: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 400, 400, 0.8);
+        updateData({ photo: compressed });
+      } catch (err) {
+        console.error('Photo compression error:', err);
+      }
     }
   };
 

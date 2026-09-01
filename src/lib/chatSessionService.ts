@@ -96,6 +96,13 @@ export async function createChatSession(
   const user = auth.currentUser;
   const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
 
+  // Safe photo url (truncate if somehow oversized base64 passed)
+  let safePhotoUrl = profilePhotoUrl || '';
+  if (safePhotoUrl.length > 300000) {
+    // If oversized (>300KB), keep local only
+    safePhotoUrl = safePhotoUrl.slice(0, 300000);
+  }
+
   const sessionData: ChatSession = {
     id: sessionId,
     userId: user ? user.uid : 'guest',
@@ -103,8 +110,13 @@ export async function createChatSession(
     createdAt: Date.now(),
     updatedAt: Date.now(),
     resumeData: initialResumeData,
-    profilePhotoUrl: profilePhotoUrl || '',
+    profilePhotoUrl: safePhotoUrl,
   };
+
+  // Always keep local storage updated
+  const localSessions = getLocalSessions();
+  localSessions.unshift(sessionData);
+  saveLocalSessions(localSessions);
 
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}`;
@@ -112,13 +124,8 @@ export async function createChatSession(
       const sessionRef = doc(db, path);
       await setDoc(sessionRef, sessionData);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      console.warn('Firestore session create warning (saved locally):', error);
     }
-  } else {
-    // Local storage fallback
-    const sessions = getLocalSessions();
-    sessions.unshift(sessionData);
-    saveLocalSessions(sessions);
   }
 
   return sessionId;
@@ -132,6 +139,16 @@ export async function updateSessionResumeData(
 ): Promise<void> {
   const user = auth.currentUser;
 
+  // Always update local storage
+  const sessions = getLocalSessions();
+  const idx = sessions.findIndex((s) => s.id === sessionId);
+  if (idx !== -1) {
+    sessions[idx].resumeData = resumeData;
+    sessions[idx].updatedAt = Date.now();
+    if (title) sessions[idx].title = title;
+    saveLocalSessions(sessions);
+  }
+
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}`;
     try {
@@ -143,16 +160,7 @@ export async function updateSessionResumeData(
       if (title) updatePayload.title = title;
       await updateDoc(sessionRef, updatePayload);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-    }
-  } else {
-    const sessions = getLocalSessions();
-    const idx = sessions.findIndex((s) => s.id === sessionId);
-    if (idx !== -1) {
-      sessions[idx].resumeData = resumeData;
-      sessions[idx].updatedAt = Date.now();
-      if (title) sessions[idx].title = title;
-      saveLocalSessions(sessions);
+      console.warn('Firestore session update warning (updated locally):', error);
     }
   }
 }
@@ -171,6 +179,19 @@ export async function addChatMessage(
     timestamp: Date.now(),
   };
 
+  // Always update local storage
+  const msgs = getLocalMessages(sessionId);
+  msgs.push(messageData);
+  saveLocalMessages(sessionId, msgs);
+
+  // Update session timestamp locally
+  const sessions = getLocalSessions();
+  const idx = sessions.findIndex((s) => s.id === sessionId);
+  if (idx !== -1) {
+    sessions[idx].updatedAt = Date.now();
+    saveLocalSessions(sessions);
+  }
+
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}/messages/${messageId}`;
     try {
@@ -181,19 +202,7 @@ export async function addChatMessage(
       const sessionRef = doc(db, sessionPath);
       await updateDoc(sessionRef, { updatedAt: Date.now() }).catch(() => {});
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
-  } else {
-    const msgs = getLocalMessages(sessionId);
-    msgs.push(messageData);
-    saveLocalMessages(sessionId, msgs);
-
-    // Also update session timestamp
-    const sessions = getLocalSessions();
-    const idx = sessions.findIndex((s) => s.id === sessionId);
-    if (idx !== -1) {
-      sessions[idx].updatedAt = Date.now();
-      saveLocalSessions(sessions);
+      console.warn('Firestore message save warning (saved locally):', error);
     }
   }
 

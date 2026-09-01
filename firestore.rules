@@ -1,31 +1,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Public read for username reservation checks and login resolution.
-    // Creation only by authenticated user claiming their own UID.
-    // Deletion only by the user that owns the mapping.
+    // User profiles and all subcollections (chatSessions, messages, resumes)
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Public read for usernames index
     match /usernames/{username} {
       allow read: if true;
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
     }
 
-    // Multi-tenant user data isolation
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Public portfolios and personal CVs
+    match /portfolios/{portfolioId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid ||
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
+    }
 
-      match /chatSessions/{sessionId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-
-        match /messages/{messageId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
-        }
-      }
+    // Public contact messages sent to portfolio owners
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated() && resource.data.recipientUserId == request.auth.uid;
     }
   }
 }

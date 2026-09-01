@@ -13,6 +13,7 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { compressImage } from '../../utils/imageCompressor';
 
 interface AIChatPanelProps {
   messages: ChatMessage[];
@@ -53,14 +54,15 @@ export default function AIChatPanel({
     }
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 400, 400, 0.8);
+        setPhotoPreview(compressed);
+      } catch (err) {
+        console.error('Photo compression error:', err);
+      }
     }
   };
 
