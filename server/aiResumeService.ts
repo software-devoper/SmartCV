@@ -21,7 +21,7 @@ export function getGeminiClient(): GoogleGenAI {
  * Helper to call Gemini model with automatic fallback models if preferred model is unavailable.
  */
 async function generateWithFallback(ai: GoogleGenAI, config: any, contents: any) {
-  const models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"];
+  const models = ["gemini-3.7-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
   let lastError: any = null;
 
   for (const model of models) {

@@ -33,6 +33,7 @@ export default function AIChatPanel({
   const [inputPrompt, setInputPrompt] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +49,7 @@ export default function AIChatPanel({
   // Auto-expand textarea height
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputPrompt(e.target.value);
+    if (enhanceError) setEnhanceError(null);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
@@ -69,6 +71,7 @@ export default function AIChatPanel({
   const handleEnhance = async () => {
     if (!inputPrompt.trim() || isEnhancing || isLoading) return;
     setIsEnhancing(true);
+    setEnhanceError(null);
     try {
       const enhanced = await onEnhancePrompt(inputPrompt.trim());
       setInputPrompt(enhanced);
@@ -80,8 +83,9 @@ export default function AIChatPanel({
           }
         }, 50);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Enhance error:', err);
+      setEnhanceError(err?.message || 'Enhancement failed. Please try again.');
     } finally {
       setIsEnhancing(false);
     }
@@ -308,6 +312,19 @@ export default function AIChatPanel({
               <Send className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {enhanceError && (
+            <div className="mt-2 px-3 py-1.5 bg-amber-50 border border-amber-200/80 rounded-lg text-amber-800 text-xs flex items-center justify-between">
+              <span>{enhanceError}</span>
+              <button
+                type="button"
+                onClick={() => setEnhanceError(null)}
+                className="text-amber-600 hover:text-amber-900 font-bold ml-2 text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

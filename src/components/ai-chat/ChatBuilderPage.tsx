@@ -401,8 +401,15 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Prompt enhancement failed');
+      let errorMsg = 'Prompt enhancement failed';
+      try {
+        const err = await res.json();
+        errorMsg = err.error || errorMsg;
+      } catch {
+        const raw = await res.text().catch(() => '');
+        if (raw) errorMsg = `Server error (${res.status}): ${raw.slice(0, 120)}`;
+      }
+      throw new Error(errorMsg);
     }
 
     const data = await res.json();
