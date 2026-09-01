@@ -6,6 +6,7 @@ import {
   getUserChatSessions,
   deleteChatSession,
   createChatSession,
+  subscribeToChatSessions,
 } from '../../lib/chatSessionService';
 import { templates } from '../../templates/registry';
 import AppNavbar from '../layout/AppNavbar';
@@ -33,30 +34,25 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const username = userProfile?.username || user?.displayName || 'there';
 
-  // Load user sessions
+  // Real-time user sessions subscription
   useEffect(() => {
-    let isMounted = true;
-    const load = async () => {
-      setIsLoadingSessions(true);
-      try {
-        const list = await getUserChatSessions(user?.uid);
-        if (isMounted) {
-          setSessions(list);
-        }
-      } catch (err) {
+    setIsLoadingSessions(true);
+    const unsub = subscribeToChatSessions(
+      (list) => {
+        setSessions(list);
+        setIsLoadingSessions(false);
+      },
+      (err) => {
         console.error('Failed to load user resume sessions:', err);
-      } finally {
-        if (isMounted) setIsLoadingSessions(false);
+        setIsLoadingSessions(false);
       }
-    };
-    load();
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
+    );
+    return () => unsub();
+  }, []);
 
   const handleStartNewAIChat = async () => {
     setIsCreatingNew(true);
@@ -91,13 +87,19 @@ export default function DashboardPage() {
 
   const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this resume session?')) return;
+    e.preventDefault();
+    if (deletingId) return;
 
+    if (!window.confirm('Are you sure you want to permanently delete this resume session?')) return;
+
+    setDeletingId(sessionId);
     try {
       await deleteChatSession(sessionId);
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     } catch (err) {
       console.error('Failed to delete session:', err);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -270,10 +272,15 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={(e) => handleDeleteSession(session.id, e)}
-                        className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                        disabled={deletingId === session.id}
+                        className="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
                         title="Delete resume"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        {deletingId === session.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
 

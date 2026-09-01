@@ -1,11 +1,40 @@
 import type { Request, Response } from "express";
 import { modifySegment } from "../../server/aiResumeService";
 
+async function parseBody(req: any): Promise<any> {
+  if (req.body) {
+    if (typeof req.body === "object") return req.body;
+    if (typeof req.body === "string") {
+      try {
+        return JSON.parse(req.body);
+      } catch {
+        return {};
+      }
+    }
+  }
+  return new Promise((resolve) => {
+    let data = "";
+    req.on("data", (chunk: any) => {
+      data += chunk;
+    });
+    req.on("end", () => {
+      try {
+        resolve(data ? JSON.parse(data) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    req.on("error", () => resolve({}));
+  });
+}
+
 export default async function handler(req: Request, res: Response) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Content-Type", "application/json");
+
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     return res.status(200).end();
   }
 
@@ -14,16 +43,9 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
-    let body = req.body;
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch {
-        // ignore
-      }
-    }
-
+    const body = await parseBody(req);
     const { segmentPath, currentValue, instruction, resumeContext } = body || {};
+
     if (!segmentPath || !instruction) {
       return res.status(400).json({ error: "Segment path and instruction are required." });
     }
@@ -37,8 +59,7 @@ export default async function handler(req: Request, res: Response) {
     return res.status(200).json(result);
   } catch (error: any) {
     console.error("AI Segment Edit error:", error);
-    return res.status(500).json({
-      error: error?.message || "Failed to edit segment",
-    });
+    const errMsg = error?.message || "Failed to edit segment";
+    return res.status(500).json({ error: errMsg });
   }
 }

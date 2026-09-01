@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCVStore } from '../../store';
 import { CVData, ChatMessage, ChatSession } from '../../types';
@@ -80,25 +80,44 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
     isLoading: false,
   });
 
+  const currentSessionIdRef = useRef<string | null>(null);
+  currentSessionIdRef.current = currentSessionId;
+
   // 1. Subscribe to real-time chat sessions list
   useEffect(() => {
     const unsub = subscribeToChatSessions(
       (list) => {
         setSessions(list);
-        // If no active session selected yet, auto-select the latest or create initial
-        if (!currentSessionId && list.length > 0) {
+        const activeId = currentSessionIdRef.current;
+        // If no active session selected yet, auto-select the latest
+        if (!activeId && list.length > 0) {
           setCurrentSessionId(list[0].id);
           setCurrentResume(list[0].resumeData || globalStoreData);
+        } else if (activeId) {
+          // If the currently active session was deleted, switch to the first remaining or clear
+          const exists = list.find((s) => s.id === activeId);
+          if (!exists) {
+            if (list.length > 0) {
+              setCurrentSessionId(list[0].id);
+              setCurrentResume(list[0].resumeData || globalStoreData);
+            } else {
+              setCurrentSessionId(null);
+              setMessages([]);
+            }
+          }
         }
       },
       (err) => console.error('Chat sessions sync error:', err)
     );
     return () => unsub();
-  }, [currentSessionId]);
+  }, []);
 
   // 2. Subscribe to messages of the current active session
   useEffect(() => {
-    if (!currentSessionId) return;
+    if (!currentSessionId) {
+      setMessages([]);
+      return;
+    }
     const unsub = subscribeToChatMessages(
       currentSessionId,
       (msgs) => {
@@ -139,11 +158,12 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
   const handleDeleteSession = async (sessionId: string) => {
     try {
       await deleteChatSession(sessionId);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (currentSessionId === sessionId) {
         const remaining = sessions.filter((s) => s.id !== sessionId);
         if (remaining.length > 0) {
           setCurrentSessionId(remaining[0].id);
-          setCurrentResume(remaining[0].resumeData);
+          setCurrentResume(remaining[0].resumeData || globalStoreData);
         } else {
           setCurrentSessionId(null);
           setMessages([]);

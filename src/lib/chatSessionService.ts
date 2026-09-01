@@ -85,6 +85,17 @@ export async function syncLocalSessionsToCloud(user: User): Promise<void> {
       console.warn(`Could not sync session ${session.id} to cloud:`, err);
     }
   }
+
+  // Clear migrated local storage so deleted sessions are never resurrected
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_SESSIONS_KEY);
+    for (const session of localSessions) {
+      localStorage.removeItem(LOCAL_STORAGE_MESSAGES_PREFIX + session.id);
+    }
+    window.dispatchEvent(new CustomEvent('smartcv_local_sessions_changed'));
+  } catch (e) {
+    console.warn('Failed to clear local sessions after cloud sync:', e);
+  }
 }
 
 // Create a new chat session
@@ -379,19 +390,42 @@ export function subscribeToChatMessages(
 
 // Delete chat session
 export async function deleteChatSession(sessionId: string): Promise<void> {
+  // 1. Always purge from local storage cache immediately
+  const localSessions = getLocalSessions().filter((s) => s.id !== sessionId);
+  saveLocalSessions(localSessions);
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_MESSAGES_PREFIX + sessionId);
+    window.dispatchEvent(
+      new CustomEvent(`smartcv_local_messages_changed_${sessionId}`)
+    );
+  } catch (e) {
+    console.error('Failed to remove local messages for session:', e);
+  }
+
+  // 2. If signed in, delete subcollection messages and document from Firestore
   const user = auth.currentUser;
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}`;
     try {
+      // Clean up subcollection messages if any
+      const messagesCol = collection(db, `${path}/messages`);
+      const msgsSnap = await getDocs(messagesCol).catch(() => null);
+      if (msgsSnap && !msgsSnap.empty) {
+        const deleteOps = msgsSnap.docs.map((docSnap) =>
+          deleteDoc(docSnap.ref).catch((err) =>
+            console.warn('Failed to delete message doc:', docSnap.id, err)
+          )
+        );
+        await Promise.all(deleteOps);
+      }
+
+      // Delete the chat session document
       const sessionRef = doc(db, path);
       await deleteDoc(sessionRef);
     } catch (error) {
+      console.error('Firestore delete error for session:', sessionId, error);
       handleFirestoreError(error, OperationType.DELETE, path);
     }
-  } else {
-    const sessions = getLocalSessions().filter((s) => s.id !== sessionId);
-    saveLocalSessions(sessions);
-    localStorage.removeItem(LOCAL_STORAGE_MESSAGES_PREFIX + sessionId);
   }
 }
 

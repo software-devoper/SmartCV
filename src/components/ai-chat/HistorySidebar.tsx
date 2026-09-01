@@ -13,6 +13,7 @@ import {
   LogOut,
   User as UserIcon,
   Cloud,
+  Loader2,
 } from 'lucide-react';
 import { auth, signInWithGoogle, logOut } from '../../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -40,6 +41,7 @@ export default function HistorySidebar({
 }: HistorySidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
@@ -88,8 +90,18 @@ export default function HistorySidebar({
 
   const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('Delete this resume conversation?')) {
-      await onDeleteSession(sessionId);
+    e.preventDefault();
+    if (deletingId) return;
+
+    if (window.confirm('Are you sure you want to permanently delete this resume?')) {
+      setDeletingId(sessionId);
+      try {
+        await onDeleteSession(sessionId);
+      } catch (err) {
+        console.error('Error deleting session:', err);
+      } finally {
+        setDeletingId(null);
+      }
     }
   };
 
@@ -222,7 +234,7 @@ export default function HistorySidebar({
 
                       {/* Action buttons (Rename & Delete) */}
                       {!isEditing && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
                             onClick={(e) => startRename(session, e)}
@@ -234,10 +246,15 @@ export default function HistorySidebar({
                           <button
                             type="button"
                             onClick={(e) => handleDelete(session.id, e)}
-                            className="p-1 text-slate-400 hover:text-red-400 rounded hover:bg-slate-700/60 cursor-pointer"
+                            disabled={deletingId === session.id}
+                            className="p-1 text-slate-400 hover:text-red-400 rounded hover:bg-slate-700/60 cursor-pointer disabled:opacity-50"
                             title="Delete session"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            {deletingId === session.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin text-red-400" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
                           </button>
                         </div>
                       )}
