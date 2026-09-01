@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { GoogleGenAI } from "@google/genai";
 import {
   generateFullResume,
@@ -10,18 +10,25 @@ import {
 const app = express();
 app.use(express.json({ limit: "15mb" }));
 
+// Normalize path to handle both /api/xxx and /xxx regardless of Vercel rewrites
+app.use((req, res, next) => {
+  res.setHeader("Content-Type", "application/json");
+  next();
+});
+
 // 1. Single field enhance API
-app.post("/api/gemini/enhance", async (req, res) => {
+const handleGeminiEnhance = async (req: Request, res: Response) => {
   try {
-    const { text, intent, userType } = req.body;
+    const { text, intent, userType } = req.body || {};
 
     if (!text || !intent) {
       return res.status(400).json({ error: "Missing text or intent" });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    let apiKey = process.env.GEMINI_API_KEY || "";
+    apiKey = apiKey.trim().replace(/^["']|["']$/g, "");
     if (!apiKey) {
-      return res.status(500).json({ error: "Gemini API key is not configured" });
+      return res.status(500).json({ error: "GEMINI_API_KEY is not configured in Vercel environment variables" });
     }
 
     const ai = new GoogleGenAI({
@@ -42,27 +49,43 @@ app.post("/api/gemini/enhance", async (req, res) => {
       return res.status(400).json({ error: "Invalid intent" });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: text,
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-      },
-    });
+    const models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"];
+    let resultText = "";
+    for (const model of models) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: text,
+          config: {
+            systemInstruction,
+            temperature: 0.7,
+          },
+        });
+        resultText = response.text?.trim() || "";
+        if (resultText) break;
+      } catch (e) {
+        console.warn(`Model ${model} enhance error, trying fallback...`);
+      }
+    }
 
-    res.json({ result: response.text?.trim() });
+    if (!resultText) {
+      throw new Error("Failed to generate enhancement with AI models");
+    }
+
+    res.json({ result: resultText });
   } catch (error: any) {
     console.error("Gemini API error:", error);
     res.status(500).json({ error: error.message || "Failed to generate content" });
   }
-});
+};
+
+app.post(["/api/gemini/enhance", "/gemini/enhance"], handleGeminiEnhance);
 
 // 2. Full Generation from free-form prompt + photo
-app.post("/api/ai-chat/generate", async (req, res) => {
+const handleFullGeneration = async (req: Request, res: Response) => {
   try {
-    const { prompt, photoUrl } = req.body;
-    if (!prompt || typeof prompt !== "string") {
+    const { prompt, photoUrl } = req.body || {};
+    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return res.status(400).json({ error: "A prompt is required for resume generation." });
     }
 
@@ -72,12 +95,14 @@ app.post("/api/ai-chat/generate", async (req, res) => {
     console.error("AI Full Generation error:", error);
     res.status(500).json({ error: error.message || "Failed to generate structured resume" });
   }
-});
+};
+
+app.post(["/api/ai-chat/generate", "/ai-chat/generate"], handleFullGeneration);
 
 // 3. General Whole-Resume Modification
-app.post("/api/ai-chat/general-edit", async (req, res) => {
+const handleGeneralEdit = async (req: Request, res: Response) => {
   try {
-    const { currentResume, instruction, history } = req.body;
+    const { currentResume, instruction, history } = req.body || {};
     if (!currentResume || !instruction) {
       return res.status(400).json({ error: "Current resume data and instruction are required." });
     }
@@ -88,12 +113,14 @@ app.post("/api/ai-chat/general-edit", async (req, res) => {
     console.error("AI General Edit error:", error);
     res.status(500).json({ error: error.message || "Failed to modify resume" });
   }
-});
+};
+
+app.post(["/api/ai-chat/general-edit", "/ai-chat/general-edit"], handleGeneralEdit);
 
 // 4. Segment-Specific Targeted Edit
-app.post("/api/ai-chat/segment-edit", async (req, res) => {
+const handleSegmentEdit = async (req: Request, res: Response) => {
   try {
-    const { segmentPath, currentValue, instruction, resumeContext } = req.body;
+    const { segmentPath, currentValue, instruction, resumeContext } = req.body || {};
     if (!segmentPath || !instruction) {
       return res.status(400).json({ error: "Segment path and instruction are required." });
     }
@@ -109,12 +136,14 @@ app.post("/api/ai-chat/segment-edit", async (req, res) => {
     console.error("AI Segment Edit error:", error);
     res.status(500).json({ error: error.message || "Failed to edit segment" });
   }
-});
+};
+
+app.post(["/api/ai-chat/segment-edit", "/ai-chat/segment-edit"], handleSegmentEdit);
 
 // 5. Prompt Enhancement
-app.post("/api/ai-chat/enhance-prompt", async (req, res) => {
+const handleEnhancePrompt = async (req: Request, res: Response) => {
   try {
-    const { text } = req.body;
+    const { text } = req.body || {};
     if (!text || typeof text !== "string" || !text.trim()) {
       return res.status(400).json({ error: "Draft prompt text is required to enhance." });
     }
@@ -125,6 +154,13 @@ app.post("/api/ai-chat/enhance-prompt", async (req, res) => {
     console.error("Prompt Enhancement error:", error);
     res.status(500).json({ error: error.message || "Failed to enhance prompt" });
   }
+};
+
+app.post(["/api/ai-chat/enhance-prompt", "/ai-chat/enhance-prompt"], handleEnhancePrompt);
+
+// Fallback for any unknown /api route
+app.all("*", (req, res) => {
+  res.status(404).json({ error: `API route ${req.method} ${req.url} not found` });
 });
 
 export default app;

@@ -215,8 +215,15 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Full generation failed');
+          let errorMsg = 'Full generation failed';
+          try {
+            const errData = await res.json();
+            errorMsg = errData.error || errorMsg;
+          } catch {
+            const raw = await res.text().catch(() => '');
+            if (raw) errorMsg = `Server error (${res.status}): ${raw.slice(0, 100)}`;
+          }
+          throw new Error(errorMsg);
         }
 
         const data = await res.json();
@@ -249,8 +256,15 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Modification failed');
+          let errorMsg = 'Modification failed';
+          try {
+            const errData = await res.json();
+            errorMsg = errData.error || errorMsg;
+          } catch {
+            const raw = await res.text().catch(() => '');
+            if (raw) errorMsg = `Server error (${res.status}): ${raw.slice(0, 100)}`;
+          }
+          throw new Error(errorMsg);
         }
 
         const data = await res.json();
@@ -323,8 +337,15 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
       });
 
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Segment edit failed');
+        let errorMsg = 'Segment edit failed';
+        try {
+          const errData = await res.json();
+          errorMsg = errData.error || errorMsg;
+        } catch {
+          const raw = await res.text().catch(() => '');
+          if (raw) errorMsg = `Server error (${res.status}): ${raw.slice(0, 100)}`;
+        }
+        throw new Error(errorMsg);
       }
 
       const data = await res.json();

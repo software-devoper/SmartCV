@@ -24,8 +24,18 @@ export default function AIAssistButton({ text, intent, userType = 'professional'
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, intent, userType })
       });
+      if (!response.ok) {
+        let errMsg = 'Failed to enhance text';
+        try {
+          const data = await response.json();
+          errMsg = data.error || errMsg;
+        } catch {
+          const raw = await response.text().catch(() => '');
+          if (raw) errMsg = `Server error (${response.status}): ${raw.slice(0, 100)}`;
+        }
+        throw new Error(errMsg);
+      }
       const data = await response.json();
-      if (data.error) throw new Error(data.error);
       setSuggestion(data.result);
     } catch (err: any) {
       setError(err.message || "Failed to enhance text");

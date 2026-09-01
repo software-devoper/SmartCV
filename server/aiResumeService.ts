@@ -2,9 +2,10 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { CVData, defaultSectionOrder, studentSectionOrder } from "../src/types";
 
 export function getGeminiClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  let apiKey = process.env.GEMINI_API_KEY || "";
+  apiKey = apiKey.trim().replace(/^["']|["']$/g, "");
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY environment variable is required");
+    throw new Error("GEMINI_API_KEY environment variable is required. Please add it to your environment settings.");
   }
   return new GoogleGenAI({
     apiKey,
@@ -14,6 +15,44 @@ export function getGeminiClient(): GoogleGenAI {
       },
     },
   });
+}
+
+/**
+ * Helper to call Gemini model with automatic fallback models if preferred model is unavailable.
+ */
+async function generateWithFallback(ai: GoogleGenAI, config: any, contents: any) {
+  const models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"];
+  let lastError: any = null;
+
+  for (const model of models) {
+    try {
+      const res = await ai.models.generateContent({
+        model,
+        contents,
+        config,
+      });
+      return res;
+    } catch (err: any) {
+      console.warn(`Model ${model} failed, trying fallback...`, err?.message || err);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("All Gemini AI models failed to respond");
+}
+
+function parseJsonCleanly(rawText: string): any {
+  if (!rawText) return {};
+  let cleaned = rawText.trim();
+  // Remove markdown code blocks if present
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  }
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.error("JSON Parse failure on text:", rawText);
+    throw new Error("Could not parse structured resume from AI output.");
+  }
 }
 
 // JSON Schema for structured resume generation
@@ -187,18 +226,18 @@ Generate unique ID strings (e.g., random 8-char strings) for all list item IDs i
 Infer whether the user is a 'student' (or recent grad) or a 'professional'.
 Do not hallucinate fake employers or fake academic degrees, but make the phrasing crisp, quantifiable, and ATS-friendly.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.7-flash",
-    contents: prompt,
-    config: {
+  const response = await generateWithFallback(
+    ai,
+    {
       systemInstruction,
       temperature: 0.2,
       responseMimeType: "application/json",
       responseSchema: resumeSchema,
     },
-  });
+    prompt
+  );
 
-  const parsed = JSON.parse(response.text || "{}");
+  const parsed = parseJsonCleanly(response.text || "{}");
   
   // Assemble full CVData
   const userType: "student" | "professional" = parsed.userType === "student" ? "student" : "professional";
@@ -336,18 +375,18 @@ User Modification Instruction:
 ${instruction}
 `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.7-flash",
-    contents: promptContent,
-    config: {
+  const response = await generateWithFallback(
+    ai,
+    {
       systemInstruction,
       temperature: 0.2,
       responseMimeType: "application/json",
       responseSchema: resumeSchema,
     },
-  });
+    promptContent
+  );
 
-  const parsed = JSON.parse(response.text || "{}");
+  const parsed = parseJsonCleanly(response.text || "{}");
 
   const updatedResume: CVData = {
     ...currentResume,
@@ -395,14 +434,14 @@ ${instruction}
 Please provide the revised replacement for this exact segment:
 `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.7-flash",
-    contents: promptContent,
-    config: {
+  const response = await generateWithFallback(
+    ai,
+    {
       systemInstruction,
       temperature: 0.3,
     },
-  });
+    promptContent
+  );
 
   const rawResult = (response.text || "").trim();
   let updatedValue: any = rawResult;
@@ -434,14 +473,14 @@ Prompt for key details regarding education, work history, quantifiable achieveme
 Do not invent fake employers or fake credentials; simply clarify, expand, and structure what the user is conveying so the resume generator produces the best possible result.
 Output ONLY the enhanced prompt text, ready for the user to review and send.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.7-flash",
-    contents: rawPrompt,
-    config: {
+  const response = await generateWithFallback(
+    ai,
+    {
       systemInstruction,
       temperature: 0.4,
     },
-  });
+    rawPrompt
+  );
 
   return (response.text || "").trim();
 }
