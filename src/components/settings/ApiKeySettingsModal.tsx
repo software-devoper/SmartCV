@@ -61,7 +61,6 @@ export default function ApiKeySettingsModal({
 
   // Load configured keys
   const loadKeys = async () => {
-    if (!user) return;
     setIsLoadingKeys(true);
     try {
       const keys = await listUserApiKeysClient();
