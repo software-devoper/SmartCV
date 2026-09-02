@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Loader2, Check, AlertCircle, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../../lib/firebase';
+import { getAuthHeaders, getLocalApiKey, getLocalDefaultProvider } from '../../lib/apiKeyService';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 
 interface AIAssistButtonProps {
@@ -30,31 +31,31 @@ export default function AIAssistButton({
     setErrorCode(null);
 
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const user = auth.currentUser;
-      if (user) {
-        headers['x-user-id'] = user.uid;
-        try {
-          const token = await user.getIdToken();
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-        } catch {}
-      }
+      const activeProvider = getLocalDefaultProvider();
+      const headers = await getAuthHeaders(activeProvider);
+      const directApiKey = getLocalApiKey(activeProvider);
 
       const response = await fetch('/api/gemini/enhance', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ text, intent, userType }),
+        body: JSON.stringify({
+          text,
+          intent,
+          userType,
+          provider: activeProvider,
+          directApiKey,
+        }),
       });
 
       if (!response.ok) {
         let errMsg = 'Failed to enhance text';
         let code = '';
+        const raw = await response.text().catch(() => '');
         try {
-          const data = await response.json();
+          const data = JSON.parse(raw);
           errMsg = data.error || errMsg;
           code = data.code || '';
         } catch {
-          const raw = await response.text().catch(() => '');
           if (raw) errMsg = `Server error (${response.status}): ${raw.slice(0, 100)}`;
         }
 

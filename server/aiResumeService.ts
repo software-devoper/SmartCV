@@ -196,7 +196,7 @@ const resumeSchema: Schema = {
       },
     },
   },
-  required: ['fullName', 'summary', 'userType'],
+  required: ['fullName', 'title', 'summary', 'userType', 'education', 'experience', 'skills'],
 };
 
 /**
@@ -208,12 +208,13 @@ export async function generateFullResume(
   photoUrl?: string
 ): Promise<{ resumeData: CVData; summaryMessage: string; provider: AIProvider }> {
   const systemInstruction = `You are an elite executive resume writer and career strategist.
-Your task is to take free-form, unorganized, or comprehensive user text and extract, organize, and enrich it into a world-class professional resume data structure.
-Ensure every bullet point follows the Google XYZ formula ("Accomplished [X] as measured by [Y], by doing [Z]") starting with active, punchy power verbs.
-Generate unique ID strings (e.g., random 8-char strings) for all list item IDs if not present.
-Infer whether the user is a 'student' (or recent grad) or a 'professional'.
-Do not hallucinate fake employers or fake academic degrees, but make the phrasing crisp, quantifiable, and ATS-friendly.
-You MUST output valid JSON conforming strictly to the requested schema.`;
+Your task is to take candidate information and extract, organize, and enrich it into a world-class professional resume data structure conforming strictly to the schema.
+- Extract all work experience mentioned (company, role, dates, and create 2-4 quantifiable high-impact bullet points using the Google XYZ formula: "Accomplished [X] as measured by [Y], by doing [Z]").
+- Extract all education degrees, colleges/universities, and majors/fields.
+- Categorize technical and soft skills into appropriate skill categories.
+- If the user did not explicitly mention a personal full name, use an appropriate professional name (e.g., from context or "Candidate") rather than leaving it blank.
+- Infer whether the user is a 'student' (or recent grad) or a 'professional'.
+- You MUST output valid JSON conforming strictly to the requested schema.`;
 
   const rawOutput = await callAIProvider(keyInfo.provider, keyInfo.decryptedKey, {
     systemInstruction,

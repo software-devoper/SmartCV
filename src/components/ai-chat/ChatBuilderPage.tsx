@@ -20,7 +20,7 @@ import {
 import { auth, signInWithGoogle, logOut } from '../../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { exportToPDF } from '../../utils/pdfExport';
-import { listUserApiKeysClient } from '../../lib/apiKeyService';
+import { listUserApiKeysClient, getAuthHeaders, getLocalApiKey } from '../../lib/apiKeyService';
 import {
   Bot,
   PanelLeft,
@@ -214,24 +214,13 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
   // Helper to generate auth headers for AI requests
   const getAiRequestHeaders = async (): Promise<Record<string, string>> => {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (currentUser) {
-      headers['x-user-id'] = currentUser.uid;
-      try {
-        const token = await currentUser.getIdToken();
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-      } catch (e) {
-        console.warn('Token fetch warning:', e);
-      }
-    }
-    return headers;
+    return await getAuthHeaders(selectedProvider);
   };
 
   // Helper to check if API key exists, if not opens gate modal
   const checkHasKeyOrGate = (): boolean => {
-    if (userKeys.length === 0) {
+    const hasLocalKey = Boolean(getLocalApiKey(selectedProvider));
+    if (userKeys.length === 0 && !hasLocalKey) {
       setIsNoKeyGateOpen(true);
       return false;
     }
@@ -283,6 +272,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
     try {
       const headers = await getAiRequestHeaders();
+      const directApiKey = getLocalApiKey(selectedProvider);
 
       if (isFirstFullGen) {
         // Full Generation Call
@@ -293,22 +283,23 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
             prompt: promptText,
             photoUrl,
             provider: selectedProvider,
+            directApiKey,
           }),
         });
 
         if (!res.ok) {
           let errorMsg = 'Full generation failed';
           let errorCode = '';
+          const rawText = await res.text().catch(() => '');
           try {
-            const errData = await res.json();
+            const errData = JSON.parse(rawText);
             errorMsg = errData.error || errorMsg;
             errorCode = errData.code || '';
           } catch {
-            const raw = await res.text().catch(() => '');
-            if (raw) errorMsg = `Server error (${res.status}): ${raw.slice(0, 100)}`;
+            if (rawText) errorMsg = `Server response (${res.status}): ${rawText.slice(0, 120)}`;
           }
 
-          if (errorCode === 'no_key_configured') {
+          if (errorCode === 'no_key_configured' || errorCode === 'invalid_api_key') {
             setIsNoKeyGateOpen(true);
           }
           throw new Error(errorMsg);
@@ -340,22 +331,23 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
             instruction: promptText,
             history: messages.slice(-5).map((m) => ({ role: m.role, content: m.content })),
             provider: selectedProvider,
+            directApiKey,
           }),
         });
 
         if (!res.ok) {
           let errorMsg = 'Modification failed';
           let errorCode = '';
+          const rawText = await res.text().catch(() => '');
           try {
-            const errData = await res.json();
+            const errData = JSON.parse(rawText);
             errorMsg = errData.error || errorMsg;
             errorCode = errData.code || '';
           } catch {
-            const raw = await res.text().catch(() => '');
-            if (raw) errorMsg = `Server error (${res.status}): ${raw.slice(0, 100)}`;
+            if (rawText) errorMsg = `Server response (${res.status}): ${rawText.slice(0, 120)}`;
           }
 
-          if (errorCode === 'no_key_configured') {
+          if (errorCode === 'no_key_configured' || errorCode === 'invalid_api_key') {
             setIsNoKeyGateOpen(true);
           }
           throw new Error(errorMsg);
@@ -418,6 +410,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
     try {
       const headers = await getAiRequestHeaders();
+      const directApiKey = getLocalApiKey(selectedProvider);
       const res = await fetch('/api/ai-chat/segment-edit', {
         method: 'POST',
         headers,
@@ -426,6 +419,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
           currentValue: segmentEditState.currentValue,
           instruction,
           provider: selectedProvider,
+          directApiKey,
           resumeContext: {
             fullName: currentResume.fullName,
             title: currentResume.title,
@@ -436,12 +430,15 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
       if (!res.ok) {
         let errorMsg = 'Segment edit failed';
+        const rawText = await res.text().catch(() => '');
         try {
-          const errData = await res.json();
+          const errData = JSON.parse(rawText);
           errorMsg = errData.error || errorMsg;
+          if (errData.code === 'no_key_configured' || errData.code === 'invalid_api_key') {
+            setIsNoKeyGateOpen(true);
+          }
         } catch {
-          const raw = await res.text().catch(() => '');
-          if (raw) errorMsg = `Server error (${res.status}): ${raw.slice(0, 100)}`;
+          if (rawText) errorMsg = `Server response (${res.status}): ${rawText.slice(0, 120)}`;
         }
         throw new Error(errorMsg);
       }
@@ -500,21 +497,28 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
     }
 
     const headers = await getAiRequestHeaders();
+    const directApiKey = getLocalApiKey(selectedProvider);
     const res = await fetch('/api/ai-chat/enhance-prompt', {
       method: 'POST',
       headers,
       body: JSON.stringify({
         text: rawPromptText,
         provider: selectedProvider,
+        directApiKey,
       }),
     });
 
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      if (errData.code === 'no_key_configured') {
-        setIsNoKeyGateOpen(true);
-      }
-      throw new Error(errData.error || 'Failed to enhance prompt');
+      const rawText = await res.text().catch(() => '');
+      let errorMsg = 'Failed to enhance prompt';
+      try {
+        const errData = JSON.parse(rawText);
+        errorMsg = errData.error || errorMsg;
+        if (errData.code === 'no_key_configured' || errData.code === 'invalid_api_key') {
+          setIsNoKeyGateOpen(true);
+        }
+      } catch {}
+      throw new Error(errorMsg);
     }
 
     const data = await res.json();

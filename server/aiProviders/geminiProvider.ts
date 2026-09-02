@@ -84,10 +84,16 @@ export async function executeGeminiCall(
   const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
   const ai = new GoogleGenAI({
     apiKey: cleanKey,
-    httpOptions: { headers: { 'User-Agent': 'smartcv-builder' } },
+    httpOptions: { headers: { 'User-Agent': 'smartcv-builder' }, timeout: 20000 },
   });
 
-  const models = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  // Fast, stable, low-latency models for structured resume generation
+  const models = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3.7-flash',
+    'gemini-flash-latest',
+  ];
   let lastError: any = null;
 
   for (const model of models) {
