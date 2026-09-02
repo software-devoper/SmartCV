@@ -246,6 +246,8 @@ export async function saveApiKeyClient(
   }
 }
 
+let isServerApiSupported: boolean | null = null;
+
 /**
  * Retrieves all configured API key metadata for the current user.
  */
@@ -269,6 +271,11 @@ export async function listUserApiKeysClient(): Promise<UserApiKeyMetadata[]> {
     }
   });
 
+  // If user is not authenticated or server API is known to be unavailable, return local keys immediately
+  if (!auth.currentUser || isServerApiSupported === false) {
+    return localKeys;
+  }
+
   try {
     const headers = await getAuthHeaders();
     const res = await fetch('/api/keys/list', {
@@ -276,12 +283,18 @@ export async function listUserApiKeysClient(): Promise<UserApiKeyMetadata[]> {
       headers,
     });
 
+    if (res.status === 404) {
+      isServerApiSupported = false;
+      return localKeys;
+    }
+
     const contentType = res.headers.get('content-type') || '';
     if (!res.ok || !contentType.includes('application/json')) {
       return localKeys;
     }
 
     const data = await res.json();
+    isServerApiSupported = true;
     const serverKeys: UserApiKeyMetadata[] = data.keys || [];
 
     // Merge server keys with any local keys

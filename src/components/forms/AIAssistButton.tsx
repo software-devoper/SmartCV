@@ -3,6 +3,7 @@ import { Sparkles, Loader2, Check, AlertCircle, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../../lib/firebase';
 import { getAuthHeaders, getLocalApiKey, getLocalDefaultProvider } from '../../lib/apiKeyService';
+import { enhanceSingleFieldDirectClientSide } from '../../lib/clientAiFallback';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 
 interface AIAssistButtonProps {
@@ -35,7 +36,7 @@ export default function AIAssistButton({
       const headers = await getAuthHeaders(activeProvider);
       const directApiKey = getLocalApiKey(activeProvider);
 
-      const response = await fetch('/api/gemini/enhance', {
+      let response = await fetch('/api/gemini/enhance', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -46,6 +47,12 @@ export default function AIAssistButton({
           directApiKey,
         }),
       });
+
+      if (response.status === 404 && directApiKey && activeProvider === 'gemini') {
+        const fallback = await enhanceSingleFieldDirectClientSide(directApiKey, text, intent, userType);
+        setSuggestion(fallback.result);
+        return;
+      }
 
       if (!response.ok) {
         let errMsg = 'Failed to enhance text';

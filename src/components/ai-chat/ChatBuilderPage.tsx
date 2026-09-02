@@ -22,6 +22,12 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { exportToPDF } from '../../utils/pdfExport';
 import { listUserApiKeysClient, getAuthHeaders, getLocalApiKey } from '../../lib/apiKeyService';
 import {
+  generateResumeDirectClientSide,
+  modifyGeneralResumeDirectClientSide,
+  enhanceSingleFieldDirectClientSide,
+  enhancePromptDirectClientSide,
+} from '../../lib/clientAiFallback';
+import {
   Bot,
   PanelLeft,
   PenLine,
@@ -276,7 +282,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
       if (isFirstFullGen) {
         // Full Generation Call
-        const res = await fetch('/api/ai-chat/generate', {
+        let res = await fetch('/api/ai-chat/generate', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -287,7 +293,12 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
           }),
         });
 
-        if (!res.ok) {
+        let data: any = null;
+
+        if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
+          // Direct client-side generation fallback if backend API is not present on host
+          data = await generateResumeDirectClientSide(directApiKey, promptText, photoUrl);
+        } else if (!res.ok) {
           let errorMsg = 'Full generation failed';
           let errorCode = '';
           const rawText = await res.text().catch(() => '');
@@ -303,9 +314,10 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
             setIsNoKeyGateOpen(true);
           }
           throw new Error(errorMsg);
+        } else {
+          data = await res.json();
         }
 
-        const data = await res.json();
         const generatedData: CVData = data.resumeData;
 
         const title = generatedData.fullName
@@ -323,7 +335,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
         });
       } else {
         // General Modification Call
-        const res = await fetch('/api/ai-chat/general-edit', {
+        let res = await fetch('/api/ai-chat/general-edit', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -335,7 +347,11 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
           }),
         });
 
-        if (!res.ok) {
+        let data: any = null;
+
+        if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
+          data = await modifyGeneralResumeDirectClientSide(directApiKey, currentResume, promptText);
+        } else if (!res.ok) {
           let errorMsg = 'Modification failed';
           let errorCode = '';
           const rawText = await res.text().catch(() => '');
@@ -351,9 +367,10 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
             setIsNoKeyGateOpen(true);
           }
           throw new Error(errorMsg);
+        } else {
+          data = await res.json();
         }
 
-        const data = await res.json();
         const updatedData: CVData = data.resumeData;
 
         setCurrentResume(updatedData);
@@ -411,7 +428,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
     try {
       const headers = await getAiRequestHeaders();
       const directApiKey = getLocalApiKey(selectedProvider);
-      const res = await fetch('/api/ai-chat/segment-edit', {
+      let res = await fetch('/api/ai-chat/segment-edit', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -428,7 +445,17 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
         }),
       });
 
-      if (!res.ok) {
+      let data: any = null;
+
+      if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
+        const enhanced = await enhanceSingleFieldDirectClientSide(
+          directApiKey,
+          String(segmentEditState.currentValue || ''),
+          instruction,
+          currentResume.userType
+        );
+        data = { updatedValue: enhanced.result, replyMessage: `Updated ${segmentEditState.title}: "${instruction}"` };
+      } else if (!res.ok) {
         let errorMsg = 'Segment edit failed';
         const rawText = await res.text().catch(() => '');
         try {
@@ -441,9 +468,10 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
           if (rawText) errorMsg = `Server response (${res.status}): ${rawText.slice(0, 120)}`;
         }
         throw new Error(errorMsg);
+      } else {
+        data = await res.json();
       }
 
-      const data = await res.json();
       const updatedValue = data.updatedValue;
 
       const updatedResume = { ...currentResume };
@@ -498,7 +526,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
     const headers = await getAiRequestHeaders();
     const directApiKey = getLocalApiKey(selectedProvider);
-    const res = await fetch('/api/ai-chat/enhance-prompt', {
+    let res = await fetch('/api/ai-chat/enhance-prompt', {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -507,6 +535,11 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
         directApiKey,
       }),
     });
+
+    if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
+      const fallback = await enhancePromptDirectClientSide(directApiKey, rawPromptText);
+      return fallback.enhancedText || rawPromptText;
+    }
 
     if (!res.ok) {
       const rawText = await res.text().catch(() => '');
