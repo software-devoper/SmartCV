@@ -36,34 +36,45 @@ export default function AIAssistButton({
       const headers = await getAuthHeaders(activeProvider);
       const directApiKey = getLocalApiKey(activeProvider);
 
-      let response = await fetch('/api/gemini/enhance', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          text,
-          intent,
-          userType,
-          provider: activeProvider,
-          directApiKey,
-        }),
-      });
-
-      if (response.status === 404 && directApiKey && activeProvider === 'gemini') {
-        const fallback = await enhanceSingleFieldDirectClientSide(directApiKey, text, intent, userType);
-        setSuggestion(fallback.result);
-        return;
+      let response: Response | null = null;
+      try {
+        response = await fetch('/api/gemini/enhance', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            text,
+            intent,
+            userType,
+            provider: activeProvider,
+            directApiKey,
+          }),
+        });
+      } catch (netErr) {
+        console.warn('Network error reaching enhance endpoint:', netErr);
       }
 
-      if (!response.ok) {
+      if ((!response || !response.ok) && directApiKey && activeProvider === 'gemini') {
+        try {
+          const fallback = await enhanceSingleFieldDirectClientSide(directApiKey, text, intent, userType);
+          if (fallback && fallback.result) {
+            setSuggestion(fallback.result);
+            return;
+          }
+        } catch (fallbackErr) {
+          console.warn('Direct enhance fallback failed:', fallbackErr);
+        }
+      }
+
+      if (!response || !response.ok) {
         let errMsg = 'Failed to enhance text';
         let code = '';
-        const raw = await response.text().catch(() => '');
+        const raw = response ? await response.text().catch(() => '') : '';
         try {
           const data = JSON.parse(raw);
           errMsg = data.error || errMsg;
           code = data.code || '';
         } catch {
-          if (raw) errMsg = `Server error (${response.status}): ${raw.slice(0, 100)}`;
+          if (raw) errMsg = `Server error (${response?.status || 'network'}): ${raw.slice(0, 100)}`;
         }
 
         setErrorCode(code);

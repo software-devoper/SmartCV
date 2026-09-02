@@ -282,40 +282,53 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
       if (isFirstFullGen) {
         // Full Generation Call
-        let res = await fetch('/api/ai-chat/generate', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            prompt: promptText,
-            photoUrl,
-            provider: selectedProvider,
-            directApiKey,
-          }),
-        });
+        let res: Response | null = null;
+        try {
+          res = await fetch('/api/ai-chat/generate', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              prompt: promptText,
+              photoUrl,
+              provider: selectedProvider,
+              directApiKey,
+            }),
+          });
+        } catch (netErr) {
+          console.warn('Network error reaching generation API:', netErr);
+        }
 
         let data: any = null;
 
-        if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
-          // Direct client-side generation fallback if backend API is not present on host
-          data = await generateResumeDirectClientSide(directApiKey, promptText, photoUrl);
-        } else if (!res.ok) {
-          let errorMsg = 'Full generation failed';
-          let errorCode = '';
-          const rawText = await res.text().catch(() => '');
+        if ((!res || !res.ok) && directApiKey && selectedProvider === 'gemini') {
+          // Direct client-side generation fallback if backend API fails or is not present
           try {
-            const errData = JSON.parse(rawText);
-            errorMsg = errData.error || errorMsg;
-            errorCode = errData.code || '';
-          } catch {
-            if (rawText) errorMsg = `Server response (${res.status}): ${rawText.slice(0, 120)}`;
+            data = await generateResumeDirectClientSide(directApiKey, promptText, photoUrl);
+          } catch (fallbackErr) {
+            console.warn('Direct client fallback generation failed:', fallbackErr);
           }
+        }
 
-          if (errorCode === 'no_key_configured' || errorCode === 'invalid_api_key') {
-            setIsNoKeyGateOpen(true);
+        if (!data) {
+          if (!res || !res.ok) {
+            let errorMsg = 'Full generation failed';
+            let errorCode = '';
+            const rawText = res ? await res.text().catch(() => '') : '';
+            try {
+              const errData = JSON.parse(rawText);
+              errorMsg = errData.error || errorMsg;
+              errorCode = errData.code || '';
+            } catch {
+              if (rawText) errorMsg = `Server response (${res?.status || 'network'}): ${rawText.slice(0, 120)}`;
+            }
+
+            if (errorCode === 'no_key_configured' || errorCode === 'invalid_api_key') {
+              setIsNoKeyGateOpen(true);
+            }
+            throw new Error(errorMsg);
+          } else {
+            data = await res.json();
           }
-          throw new Error(errorMsg);
-        } else {
-          data = await res.json();
         }
 
         const generatedData: CVData = data.resumeData;
@@ -335,40 +348,53 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
         });
       } else {
         // General Modification Call
-        let res = await fetch('/api/ai-chat/general-edit', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            currentResume,
-            instruction: promptText,
-            history: messages.slice(-5).map((m) => ({ role: m.role, content: m.content })),
-            provider: selectedProvider,
-            directApiKey,
-          }),
-        });
+        let res: Response | null = null;
+        try {
+          res = await fetch('/api/ai-chat/general-edit', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              currentResume,
+              instruction: promptText,
+              history: messages.slice(-5).map((m) => ({ role: m.role, content: m.content })),
+              provider: selectedProvider,
+              directApiKey,
+            }),
+          });
+        } catch (netErr) {
+          console.warn('Network error reaching general-edit API:', netErr);
+        }
 
         let data: any = null;
 
-        if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
-          data = await modifyGeneralResumeDirectClientSide(directApiKey, currentResume, promptText);
-        } else if (!res.ok) {
-          let errorMsg = 'Modification failed';
-          let errorCode = '';
-          const rawText = await res.text().catch(() => '');
+        if ((!res || !res.ok) && directApiKey && selectedProvider === 'gemini') {
           try {
-            const errData = JSON.parse(rawText);
-            errorMsg = errData.error || errorMsg;
-            errorCode = errData.code || '';
-          } catch {
-            if (rawText) errorMsg = `Server response (${res.status}): ${rawText.slice(0, 120)}`;
+            data = await modifyGeneralResumeDirectClientSide(directApiKey, currentResume, promptText);
+          } catch (fallbackErr) {
+            console.warn('Direct client edit fallback failed:', fallbackErr);
           }
+        }
 
-          if (errorCode === 'no_key_configured' || errorCode === 'invalid_api_key') {
-            setIsNoKeyGateOpen(true);
+        if (!data) {
+          if (!res || !res.ok) {
+            let errorMsg = 'Modification failed';
+            let errorCode = '';
+            const rawText = res ? await res.text().catch(() => '') : '';
+            try {
+              const errData = JSON.parse(rawText);
+              errorMsg = errData.error || errorMsg;
+              errorCode = errData.code || '';
+            } catch {
+              if (rawText) errorMsg = `Server response (${res?.status || 'network'}): ${rawText.slice(0, 120)}`;
+            }
+
+            if (errorCode === 'no_key_configured' || errorCode === 'invalid_api_key') {
+              setIsNoKeyGateOpen(true);
+            }
+            throw new Error(errorMsg);
+          } else {
+            data = await res.json();
           }
-          throw new Error(errorMsg);
-        } else {
-          data = await res.json();
         }
 
         const updatedData: CVData = data.resumeData;
@@ -428,48 +454,61 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
     try {
       const headers = await getAiRequestHeaders();
       const directApiKey = getLocalApiKey(selectedProvider);
-      let res = await fetch('/api/ai-chat/segment-edit', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          segmentPath: segmentEditState.path,
-          currentValue: segmentEditState.currentValue,
-          instruction,
-          provider: selectedProvider,
-          directApiKey,
-          resumeContext: {
-            fullName: currentResume.fullName,
-            title: currentResume.title,
-            userType: currentResume.userType,
-          },
-        }),
-      });
+      let res: Response | null = null;
+      try {
+        res = await fetch('/api/ai-chat/segment-edit', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            segmentPath: segmentEditState.path,
+            currentValue: segmentEditState.currentValue,
+            instruction,
+            provider: selectedProvider,
+            directApiKey,
+            resumeContext: {
+              fullName: currentResume.fullName,
+              title: currentResume.title,
+              userType: currentResume.userType,
+            },
+          }),
+        });
+      } catch (netErr) {
+        console.warn('Network error reaching segment-edit API:', netErr);
+      }
 
       let data: any = null;
 
-      if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
-        const enhanced = await enhanceSingleFieldDirectClientSide(
-          directApiKey,
-          String(segmentEditState.currentValue || ''),
-          instruction,
-          currentResume.userType
-        );
-        data = { updatedValue: enhanced.result, replyMessage: `Updated ${segmentEditState.title}: "${instruction}"` };
-      } else if (!res.ok) {
-        let errorMsg = 'Segment edit failed';
-        const rawText = await res.text().catch(() => '');
+      if ((!res || !res.ok) && directApiKey && selectedProvider === 'gemini') {
         try {
-          const errData = JSON.parse(rawText);
-          errorMsg = errData.error || errorMsg;
-          if (errData.code === 'no_key_configured' || errData.code === 'invalid_api_key') {
-            setIsNoKeyGateOpen(true);
-          }
-        } catch {
-          if (rawText) errorMsg = `Server response (${res.status}): ${rawText.slice(0, 120)}`;
+          const enhanced = await enhanceSingleFieldDirectClientSide(
+            directApiKey,
+            String(segmentEditState.currentValue || ''),
+            instruction,
+            currentResume.userType
+          );
+          data = { updatedValue: enhanced.result, replyMessage: `Updated ${segmentEditState.title}: "${instruction}"` };
+        } catch (fallbackErr) {
+          console.warn('Direct client segment edit fallback failed:', fallbackErr);
         }
-        throw new Error(errorMsg);
-      } else {
-        data = await res.json();
+      }
+
+      if (!data) {
+        if (!res || !res.ok) {
+          let errorMsg = 'Segment edit failed';
+          const rawText = res ? await res.text().catch(() => '') : '';
+          try {
+            const errData = JSON.parse(rawText);
+            errorMsg = errData.error || errorMsg;
+            if (errData.code === 'no_key_configured' || errData.code === 'invalid_api_key') {
+              setIsNoKeyGateOpen(true);
+            }
+          } catch {
+            if (rawText) errorMsg = `Server response (${res?.status || 'network'}): ${rawText.slice(0, 120)}`;
+          }
+          throw new Error(errorMsg);
+        } else {
+          data = await res.json();
+        }
       }
 
       const updatedValue = data.updatedValue;
@@ -526,23 +565,34 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
     const headers = await getAiRequestHeaders();
     const directApiKey = getLocalApiKey(selectedProvider);
-    let res = await fetch('/api/ai-chat/enhance-prompt', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        text: rawPromptText,
-        provider: selectedProvider,
-        directApiKey,
-      }),
-    });
-
-    if (res.status === 404 && directApiKey && selectedProvider === 'gemini') {
-      const fallback = await enhancePromptDirectClientSide(directApiKey, rawPromptText);
-      return fallback.enhancedText || rawPromptText;
+    let res: Response | null = null;
+    try {
+      res = await fetch('/api/ai-chat/enhance-prompt', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          text: rawPromptText,
+          provider: selectedProvider,
+          directApiKey,
+        }),
+      });
+    } catch (netErr) {
+      console.warn('Network error reaching enhance-prompt API:', netErr);
     }
 
-    if (!res.ok) {
-      const rawText = await res.text().catch(() => '');
+    if ((!res || !res.ok) && directApiKey && selectedProvider === 'gemini') {
+      try {
+        const fallback = await enhancePromptDirectClientSide(directApiKey, rawPromptText);
+        if (fallback && fallback.enhancedText) {
+          return fallback.enhancedText;
+        }
+      } catch (fallbackErr) {
+        console.warn('Direct fallback enhance prompt failed:', fallbackErr);
+      }
+    }
+
+    if (!res || !res.ok) {
+      const rawText = res ? await res.text().catch(() => '') : '';
       let errorMsg = 'Failed to enhance prompt';
       try {
         const errData = JSON.parse(rawText);
@@ -550,7 +600,9 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
         if (errData.code === 'no_key_configured' || errData.code === 'invalid_api_key') {
           setIsNoKeyGateOpen(true);
         }
-      } catch {}
+      } catch {
+        if (rawText) errorMsg = `Server response (${res?.status || 'network'}): ${rawText.slice(0, 120)}`;
+      }
       throw new Error(errorMsg);
     }
 

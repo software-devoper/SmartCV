@@ -283,7 +283,7 @@ export async function listUserApiKeysClient(): Promise<UserApiKeyMetadata[]> {
       headers,
     });
 
-    if (res.status === 404) {
+    if (res.status === 404 || res.status === 500) {
       isServerApiSupported = false;
       return localKeys;
     }

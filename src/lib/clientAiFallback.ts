@@ -136,45 +136,58 @@ async function callGeminiDirectly(
   responseSchema?: any
 ): Promise<string> {
   const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
-  const model = 'gemini-3.5-flash-lite';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
-    cleanKey
-  )}`;
+  const candidateModels = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  let lastError: any = null;
 
-  const bodyPayload: any = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {},
-  };
-
-  if (systemInstruction) {
-    bodyPayload.systemInstruction = {
-      parts: [{ text: systemInstruction }],
-    };
-  }
-
-  if (responseSchema) {
-    bodyPayload.generationConfig.responseMimeType = 'application/json';
-    bodyPayload.generationConfig.responseSchema = responseSchema;
-  }
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bodyPayload),
-  });
-
-  if (!res.ok) {
-    let errorDetail = `Gemini API error (${res.status})`;
+  for (const model of candidateModels) {
     try {
-      const errJson = await res.json();
-      errorDetail = errJson.error?.message || errorDetail;
-    } catch {}
-    throw new Error(errorDetail);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
+        cleanKey
+      )}`;
+
+      const bodyPayload: any = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {},
+      };
+
+      if (systemInstruction) {
+        bodyPayload.systemInstruction = {
+          parts: [{ text: systemInstruction }],
+        };
+      }
+
+      if (responseSchema) {
+        bodyPayload.generationConfig.responseMimeType = 'application/json';
+        bodyPayload.generationConfig.responseSchema = responseSchema;
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyPayload),
+      });
+
+      if (!res.ok) {
+        let errorDetail = `Gemini API error (${res.status})`;
+        try {
+          const errJson = await res.json();
+          errorDetail = errJson.error?.message || errorDetail;
+        } catch {}
+        lastError = new Error(errorDetail);
+        continue;
+      }
+
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (text) {
+        return text;
+      }
+    } catch (err: any) {
+      lastError = err;
+    }
   }
 
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  return text;
+  throw lastError || new Error('Failed to generate content with Gemini');
 }
 
 /**
