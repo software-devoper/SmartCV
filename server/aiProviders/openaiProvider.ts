@@ -44,20 +44,14 @@ export function normalizeOpenAIError(err: any): { code: string; message: string 
  */
 export async function testOpenAIKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
   try {
+    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
     const openai = new OpenAI({
-      apiKey: apiKey.trim(),
+      apiKey: cleanKey,
+      timeout: 6000,
     });
 
-    // Fast call to test key validity
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: 'Ping. Reply pong.' }],
-      max_tokens: 10,
-    });
-
-    if (response && response.choices && response.choices.length > 0) {
-      return { valid: true };
-    }
+    // Fast call to test key validity without consuming tokens
+    await openai.models.list();
     return { valid: true };
   } catch (err: any) {
     const normalized = normalizeOpenAIError(err);

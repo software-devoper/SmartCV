@@ -10,7 +10,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderMeta> = {
     keyPrefix: 'AIza',
     helpUrl: 'https://aistudio.google.com/app/apikey',
     helpLabel: 'Get key from Google AI Studio',
-    recommendedModel: 'gemini-2.5-flash',
+    recommendedModel: 'gemini-3.7-flash',
     icon: 'Sparkles',
     color: 'blue',
     badgeBg: 'bg-blue-500/10',

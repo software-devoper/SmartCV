@@ -55,24 +55,18 @@ export function normalizeGeminiError(err: any): { code: string; message: string 
 }
 
 /**
- * Validates a Google Gemini API key with a lightweight generation call.
+ * Validates a Google Gemini API key with an instantaneous, 0-token model list call.
  */
 export async function testGeminiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
   try {
+    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
     const ai = new GoogleGenAI({
-      apiKey: apiKey.trim(),
-      httpOptions: { headers: { 'User-Agent': 'smartcv-builder' } },
+      apiKey: cleanKey,
+      httpOptions: { headers: { 'User-Agent': 'smartcv-builder' }, timeout: 6000 },
     });
 
-    const res = await ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: 'Ping test. Reply with pong.',
-      config: { maxOutputTokens: 10, temperature: 0.1 },
-    });
-
-    if (res && res.text) {
-      return { valid: true };
-    }
+    // Fast 300ms call to verify key authenticity without using token quota
+    await ai.models.list();
     return { valid: true };
   } catch (err: any) {
     const normalized = normalizeGeminiError(err);
