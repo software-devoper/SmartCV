@@ -142,6 +142,52 @@
         "type",
         "timestamp"
       ]
+    },
+    "UserApiKey": {
+      "title": "UserApiKey",
+      "description": "Encrypted user-managed AI provider API key metadata and ciphertext",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "gemini",
+            "claude",
+            "openai"
+          ]
+        },
+        "maskedKey": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "encryptedKey": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "isValid": {
+          "type": "boolean"
+        },
+        "lastValidatedAt": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "provider",
+        "maskedKey",
+        "encryptedKey",
+        "isDefault",
+        "isValid",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -160,6 +206,10 @@
     "/users/{userId}/chatSessions/{sessionId}/messages/{messageId}": {
       "schema": "ChatMessage",
       "description": "Messages inside a specific chat session"
+    },
+    "/users/{userId}/apiKeys/{provider}": {
+      "schema": "UserApiKey",
+      "description": "Secure encrypted AI API keys configured by the user"
     }
   }
 }

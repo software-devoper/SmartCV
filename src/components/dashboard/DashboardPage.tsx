@@ -8,9 +8,11 @@ import {
   createChatSession,
   subscribeToChatSessions,
 } from '../../lib/chatSessionService';
+import { listUserApiKeysClient } from '../../lib/apiKeyService';
 import { templates } from '../../templates/registry';
 import AppNavbar from '../layout/AppNavbar';
-import { ChatSession, CVData } from '../../types';
+import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
+import { ChatSession, CVData, UserApiKeyMetadata } from '../../types';
 import {
   Sparkles,
   Bot,
@@ -23,6 +25,8 @@ import {
   Loader2,
   Layers,
   ChevronRight,
+  Key,
+  CheckCircle2,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -35,8 +39,21 @@ export default function DashboardPage() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [userKeys, setUserKeys] = useState<UserApiKeyMetadata[]>([]);
 
   const username = userProfile?.username || user?.displayName || 'there';
+
+  const loadKeys = async () => {
+    if (user) {
+      const keys = await listUserApiKeysClient();
+      setUserKeys(keys);
+    }
+  };
+
+  useEffect(() => {
+    loadKeys();
+  }, [user]);
 
   // Real-time user sessions subscription
   useEffect(() => {
@@ -103,20 +120,13 @@ export default function DashboardPage() {
     }
   };
 
-  const handleQuickTemplate = (templateId: string, type: 'student' | 'professional') => {
-    setTemplate(templateId, type);
-    navigate('/builder');
-  };
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <AppNavbar currentMode="dashboard" />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-10">
-        {/* Welcome Header Banner */}
-        <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-950/80 via-slate-900 to-purple-950/60 border border-slate-800 shadow-xl overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Welcome Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-900/40 via-purple-900/20 to-slate-900 border border-slate-800 p-6 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="relative z-10 max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
               <Sparkles className="w-3.5 h-3.5" />
@@ -126,9 +136,41 @@ export default function DashboardPage() {
               Welcome back, <span className="text-blue-400">@{username}</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Create, refine, and download professional resumes tailored for your target roles.
+              Create, refine, and download professional resumes tailored for your target roles with your own AI providers.
             </p>
           </div>
+
+          {/* BYOK Status Card / Button */}
+          <button
+            type="button"
+            onClick={() => setIsApiKeyModalOpen(true)}
+            className="relative z-10 flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 hover:border-emerald-500/60 transition-all text-left shadow-lg group cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+              <Key className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white">AI Provider Keys</span>
+                {userKeys.length > 0 ? (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 font-bold border border-emerald-800/40 flex items-center gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" />
+                    {userKeys.length} Ready
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 font-bold border border-amber-800/40">
+                    Not configured
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {userKeys.length > 0
+                  ? `Active default: ${userKeys.find((k) => k.isDefault)?.provider?.toUpperCase() || userKeys[0].provider?.toUpperCase()}`
+                  : 'Add Gemini, Claude, or OpenAI key'}
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-500 ml-2 group-hover:text-white transition-colors" />
+          </button>
         </div>
 
         {/* Primary Action Cards */}
@@ -149,7 +191,7 @@ export default function DashboardPage() {
                   AI Chat Resume Builder
                 </h2>
                 <p className="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">
-                  Type your background in natural language or attach a headshot. Gemini 3.7 Flash extracts and crafts an ATS-ready resume with live A4 preview.
+                  Type your background in natural language or attach a headshot. Powered by your choice of Gemini, Claude, or OpenAI with live A4 preview.
                 </p>
               </div>
             </div>
@@ -220,158 +262,105 @@ export default function DashboardPage() {
                 Your Saved Resumes
               </h3>
               <p className="text-xs text-slate-400">
-                Cloud-persisted sessions and drafts across your account
+                Resumes synced across your devices in real time
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleStartNewAIChat}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>New Resume</span>
-            </button>
+            <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400">
+              {sessions.length} {sessions.length === 1 ? 'Resume' : 'Resumes'}
+            </span>
           </div>
 
           {isLoadingSessions ? (
-            <div className="py-12 flex flex-col items-center justify-center text-slate-500">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-500 mb-2" />
-              <p className="text-xs">Loading your saved resumes...</p>
+            <div className="flex flex-col items-center justify-center p-12 bg-slate-900/50 rounded-3xl border border-slate-800 space-y-3">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <p className="text-xs text-slate-400 font-medium">Syncing your resume history...</p>
             </div>
           ) : sessions.length === 0 ? (
-            <div className="py-12 px-6 rounded-3xl bg-slate-900/50 border border-slate-800 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
+            <div className="p-8 sm:p-12 text-center bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
                 <FileText className="w-6 h-6" />
               </div>
               <h4 className="text-sm font-bold text-white">No resumes created yet</h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Get started by telling the AI about your experience or selecting a template.
+                Start by chatting with the AI Resume Architect or build one using the step-by-step form editor.
               </p>
-              <button
-                type="button"
-                onClick={handleStartNewAIChat}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Build Resume with AI</span>
-              </button>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleStartNewAIChat}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Create Your First Resume
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  onClick={() => handleOpenSessionInChat(session)}
-                  className="group bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-md hover:shadow-xl transition-all flex flex-col justify-between cursor-pointer space-y-4"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
-                        {session.title || 'Untitled Resume'}
-                      </h4>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteSession(session.id, e)}
-                        disabled={deletingId === session.id}
-                        className="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
-                        title="Delete resume"
-                      >
-                        {deletingId === session.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
-                        ) : (
-                          <Trash2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+              {sessions.map((session) => {
+                const updatedDate = new Date(session.updatedAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                });
+                const template = templates.find((t) => t.id === session.resumeData?.templateId);
+
+                return (
+                  <div
+                    key={session.id}
+                    onClick={() => handleOpenSessionInChat(session)}
+                    className="group bg-slate-900 border border-slate-800 hover:border-blue-500/60 rounded-2xl p-5 shadow-md hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between space-y-4 relative"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors truncate">
+                          {session.title || 'Untitled Resume'}
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteSession(session.id, e)}
+                          disabled={deletingId === session.id}
+                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Resume"
+                        >
+                          {deletingId === session.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-slate-400 line-clamp-2">
+                        {session.resumeData?.summary ||
+                          session.resumeData?.title ||
+                          'Resume draft created with AI Architect'}
+                      </p>
                     </div>
 
-                    <p className="text-xs text-slate-400 line-clamp-1">
-                      {session.resumeData?.title ||
-                        session.resumeData?.fullName ||
-                        'Draft Resume'}
-                    </p>
-
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
-                      <span className="flex items-center gap-1">
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+                      <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3" />
-                        {new Date(session.updatedAt || session.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-mono">
-                        {session.resumeData?.templateId || 'student-minimal'}
-                      </span>
+                        <span>{updatedDate}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
+                          {template?.name || 'Classic'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenSessionInForm(session);
-                      }}
-                      className="text-xs text-slate-400 hover:text-white font-medium hover:underline cursor-pointer"
-                    >
-                      Form Editor
-                    </button>
-                    <span className="text-xs text-blue-400 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      <span>Open in AI Chat</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
-
-        {/* Quick Template Starters */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white tracking-tight">
-                Quick Template Starters
-              </h3>
-              <p className="text-xs text-slate-400">
-                Choose a pre-styled layout and start customizing immediately
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/templates')}
-              className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1"
-            >
-              <span>View All 14</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {templates.slice(0, 4).map((template) => (
-              <div
-                key={template.id}
-                onClick={() => handleQuickTemplate(template.id, template.type)}
-                className="group bg-slate-900 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-3 shadow-md hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between"
-              >
-                <div
-                  className={`w-full rounded-xl aspect-[21/28] flex items-center justify-center p-3 mb-3 border ${template.thumbnailClass}`}
-                >
-                  <div className="w-4/5 h-4/5 bg-white/90 rounded-xs shadow-xs p-2 flex flex-col gap-1.5">
-                    <div className="w-1/2 h-1.5 bg-slate-800 rounded-full" />
-                    <div className="w-full h-px bg-slate-200" />
-                    <div className="w-full h-1 bg-slate-400 rounded-full" />
-                    <div className="w-3/4 h-1 bg-slate-300 rounded-full" />
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white group-hover:text-blue-400 truncate">
-                    {template.name}
-                  </h4>
-                  <p className="text-[10px] text-slate-500 capitalize">{template.type}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       </main>
+
+      <ApiKeySettingsModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onKeysUpdated={loadKeys}
+      />
     </div>
   );
 }

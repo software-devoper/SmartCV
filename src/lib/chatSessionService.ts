@@ -65,7 +65,23 @@ export async function syncLocalSessionsToCloud(user: User): Promise<void> {
   const localSessions = getLocalSessions();
   if (localSessions.length === 0) return;
 
-  for (const session of localSessions) {
+  // ONLY sync genuine guest sessions (userId === 'guest')
+  const guestSessions = localSessions.filter((s) => s.userId === 'guest');
+
+  // Immediately clear local sessions to prevent any resurrection
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_SESSIONS_KEY);
+    for (const session of localSessions) {
+      localStorage.removeItem(LOCAL_STORAGE_MESSAGES_PREFIX + session.id);
+    }
+    window.dispatchEvent(new CustomEvent('smartcv_local_sessions_changed'));
+  } catch (e) {
+    console.warn('Failed to clear local sessions after cloud sync:', e);
+  }
+
+  if (guestSessions.length === 0) return;
+
+  for (const session of guestSessions) {
     const path = `users/${user.uid}/chatSessions/${session.id}`;
     try {
       const sessionRef = doc(db, path);
@@ -84,17 +100,6 @@ export async function syncLocalSessionsToCloud(user: User): Promise<void> {
     } catch (err) {
       console.warn(`Could not sync session ${session.id} to cloud:`, err);
     }
-  }
-
-  // Clear migrated local storage so deleted sessions are never resurrected
-  try {
-    localStorage.removeItem(LOCAL_STORAGE_SESSIONS_KEY);
-    for (const session of localSessions) {
-      localStorage.removeItem(LOCAL_STORAGE_MESSAGES_PREFIX + session.id);
-    }
-    window.dispatchEvent(new CustomEvent('smartcv_local_sessions_changed'));
-  } catch (e) {
-    console.warn('Failed to clear local sessions after cloud sync:', e);
   }
 }
 
@@ -124,19 +129,19 @@ export async function createChatSession(
     profilePhotoUrl: safePhotoUrl,
   };
 
-  // Always keep local storage updated
-  const localSessions = getLocalSessions();
-  localSessions.unshift(sessionData);
-  saveLocalSessions(localSessions);
-
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}`;
     try {
       const sessionRef = doc(db, path);
       await setDoc(sessionRef, sessionData);
     } catch (error) {
-      console.warn('Firestore session create warning (saved locally):', error);
+      console.warn('Firestore session create warning:', error);
     }
+  } else {
+    // Only save to local storage for unauthenticated guests
+    const localSessions = getLocalSessions();
+    localSessions.unshift(sessionData);
+    saveLocalSessions(localSessions);
   }
 
   return sessionId;
@@ -150,16 +155,6 @@ export async function updateSessionResumeData(
 ): Promise<void> {
   const user = auth.currentUser;
 
-  // Always update local storage
-  const sessions = getLocalSessions();
-  const idx = sessions.findIndex((s) => s.id === sessionId);
-  if (idx !== -1) {
-    sessions[idx].resumeData = resumeData;
-    sessions[idx].updatedAt = Date.now();
-    if (title) sessions[idx].title = title;
-    saveLocalSessions(sessions);
-  }
-
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}`;
     try {
@@ -171,7 +166,16 @@ export async function updateSessionResumeData(
       if (title) updatePayload.title = title;
       await updateDoc(sessionRef, updatePayload);
     } catch (error) {
-      console.warn('Firestore session update warning (updated locally):', error);
+      console.warn('Firestore session update warning:', error);
+    }
+  } else {
+    const sessions = getLocalSessions();
+    const idx = sessions.findIndex((s) => s.id === sessionId);
+    if (idx !== -1) {
+      sessions[idx].resumeData = resumeData;
+      sessions[idx].updatedAt = Date.now();
+      if (title) sessions[idx].title = title;
+      saveLocalSessions(sessions);
     }
   }
 }
@@ -190,19 +194,6 @@ export async function addChatMessage(
     timestamp: Date.now(),
   };
 
-  // Always update local storage
-  const msgs = getLocalMessages(sessionId);
-  msgs.push(messageData);
-  saveLocalMessages(sessionId, msgs);
-
-  // Update session timestamp locally
-  const sessions = getLocalSessions();
-  const idx = sessions.findIndex((s) => s.id === sessionId);
-  if (idx !== -1) {
-    sessions[idx].updatedAt = Date.now();
-    saveLocalSessions(sessions);
-  }
-
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}/messages/${messageId}`;
     try {
@@ -213,7 +204,18 @@ export async function addChatMessage(
       const sessionRef = doc(db, sessionPath);
       await updateDoc(sessionRef, { updatedAt: Date.now() }).catch(() => {});
     } catch (error) {
-      console.warn('Firestore message save warning (saved locally):', error);
+      console.warn('Firestore message save warning:', error);
+    }
+  } else {
+    const msgs = getLocalMessages(sessionId);
+    msgs.push(messageData);
+    saveLocalMessages(sessionId, msgs);
+
+    const sessions = getLocalSessions();
+    const idx = sessions.findIndex((s) => s.id === sessionId);
+    if (idx !== -1) {
+      sessions[idx].updatedAt = Date.now();
+      saveLocalSessions(sessions);
     }
   }
 
@@ -390,10 +392,10 @@ export function subscribeToChatMessages(
 
 // Delete chat session
 export async function deleteChatSession(sessionId: string): Promise<void> {
-  // 1. Always purge from local storage cache immediately
-  const localSessions = getLocalSessions().filter((s) => s.id !== sessionId);
-  saveLocalSessions(localSessions);
+  // 1. Purge from local storage cache immediately
   try {
+    const localSessions = getLocalSessions().filter((s) => s.id !== sessionId);
+    saveLocalSessions(localSessions);
     localStorage.removeItem(LOCAL_STORAGE_MESSAGES_PREFIX + sessionId);
     window.dispatchEvent(
       new CustomEvent(`smartcv_local_messages_changed_${sessionId}`)
@@ -402,26 +404,24 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
     console.error('Failed to remove local messages for session:', e);
   }
 
-  // 2. If signed in, delete subcollection messages and document from Firestore
+  // 2. If signed in, delete document and subcollections from Firestore
   const user = auth.currentUser;
   if (user) {
     const path = `users/${user.uid}/chatSessions/${sessionId}`;
     try {
-      // Clean up subcollection messages if any
+      // Delete the chat session document first
+      const sessionRef = doc(db, path);
+      await deleteDoc(sessionRef);
+
+      // Clean up subcollection messages
       const messagesCol = collection(db, `${path}/messages`);
       const msgsSnap = await getDocs(messagesCol).catch(() => null);
       if (msgsSnap && !msgsSnap.empty) {
         const deleteOps = msgsSnap.docs.map((docSnap) =>
-          deleteDoc(docSnap.ref).catch((err) =>
-            console.warn('Failed to delete message doc:', docSnap.id, err)
-          )
+          deleteDoc(docSnap.ref).catch(() => {})
         );
         await Promise.all(deleteOps);
       }
-
-      // Delete the chat session document
-      const sessionRef = doc(db, path);
-      await deleteDoc(sessionRef);
     } catch (error) {
       console.error('Firestore delete error for session:', sessionId, error);
       handleFirestoreError(error, OperationType.DELETE, path);

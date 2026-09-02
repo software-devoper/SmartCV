@@ -15,7 +15,11 @@ import {
   AlertTriangle,
   Loader2,
   Settings,
+  Key,
 } from 'lucide-react';
+import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
+import { listUserApiKeysClient } from '../../lib/apiKeyService';
+import { UserApiKeyMetadata } from '../../types';
 
 interface AppNavbarProps {
   currentMode?: 'dashboard' | 'chat' | 'builder' | 'templates';
@@ -28,11 +32,28 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [userKeys, setUserKeys] = useState<UserApiKeyMetadata[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const loadUserKeys = async () => {
+    if (user) {
+      try {
+        const keys = await listUserApiKeysClient();
+        setUserKeys(keys);
+      } catch (err) {
+        console.error('Failed to load user keys:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadUserKeys();
+  }, [user]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -198,6 +219,22 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
                       type="button"
                       onClick={() => {
                         setIsDropdownOpen(false);
+                        setIsApiKeyModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Key className="w-4 h-4 text-emerald-400" />
+                        <span>AI Provider & Keys</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                        {userKeys.length > 0 ? `${userKeys.length} active` : 'Set Key'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDropdownOpen(false);
                         setIsSettingsModalOpen(true);
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
@@ -223,6 +260,13 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
           </div>
         </div>
       </header>
+
+      {/* AI Key Settings Modal */}
+      <ApiKeySettingsModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onKeysUpdated={loadUserKeys}
+      />
 
       {/* Account Settings & Delete Account Modal */}
       {isSettingsModalOpen && (

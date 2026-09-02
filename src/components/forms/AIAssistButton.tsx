@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, Check, X, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, Check, AlertCircle, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { auth } from '../../lib/firebase';
+import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 
 interface AIAssistButtonProps {
   text: string;
@@ -9,36 +11,61 @@ interface AIAssistButtonProps {
   onSuggestionAccepted: (newText: string) => void;
 }
 
-export default function AIAssistButton({ text, intent, userType = 'professional', onSuggestionAccepted }: AIAssistButtonProps) {
+export default function AIAssistButton({
+  text,
+  intent,
+  userType = 'professional',
+  onSuggestionAccepted,
+}: AIAssistButtonProps) {
   const [loading, setLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   const handleEnhance = async () => {
     if (!text || text.trim().length < 5) return;
     setLoading(true);
     setError(null);
+    setErrorCode(null);
+
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const user = auth.currentUser;
+      if (user) {
+        headers['x-user-id'] = user.uid;
+        try {
+          const token = await user.getIdToken();
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } catch {}
+      }
+
       const response = await fetch('/api/gemini/enhance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, intent, userType })
+        headers,
+        body: JSON.stringify({ text, intent, userType }),
       });
+
       if (!response.ok) {
         let errMsg = 'Failed to enhance text';
+        let code = '';
         try {
           const data = await response.json();
           errMsg = data.error || errMsg;
+          code = data.code || '';
         } catch {
           const raw = await response.text().catch(() => '');
           if (raw) errMsg = `Server error (${response.status}): ${raw.slice(0, 100)}`;
         }
+
+        setErrorCode(code);
         throw new Error(errMsg);
       }
+
       const data = await response.json();
       setSuggestion(data.result);
     } catch (err: any) {
-      setError(err.message || "Failed to enhance text");
+      setError(err.message || 'Failed to enhance text');
     } finally {
       setLoading(false);
     }
@@ -47,7 +74,7 @@ export default function AIAssistButton({ text, intent, userType = 'professional'
   if (suggestion) {
     return (
       <AnimatePresence>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
@@ -61,23 +88,28 @@ export default function AIAssistButton({ text, intent, userType = 'professional'
               <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" /> AI Refinement Suggestion
               </p>
-              <span className="text-[10px] uppercase font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Ready</span>
+              <span className="text-[10px] uppercase font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                Ready
+              </span>
             </div>
             <p className="text-xs sm:text-sm italic text-slate-700 bg-white p-3 rounded-xl border border-slate-200/80 leading-relaxed shadow-2xs">
               "{suggestion}"
             </p>
             <div className="flex gap-2 pt-1">
-              <button 
-                type="button" 
-                onClick={() => { onSuggestionAccepted(suggestion); setSuggestion(null); }}
-                className="bg-blue-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+              <button
+                type="button"
+                onClick={() => {
+                  onSuggestionAccepted(suggestion);
+                  setSuggestion(null);
+                }}
+                className="bg-blue-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" /> Accept
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setSuggestion(null)}
-                className="bg-white text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 hover:text-slate-900 transition-all shadow-2xs"
+                className="bg-white text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 hover:text-slate-900 transition-all shadow-2xs cursor-pointer"
               >
                 Dismiss
               </button>
@@ -89,21 +121,42 @@ export default function AIAssistButton({ text, intent, userType = 'professional'
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {error && (
-        <span className="text-[11px] text-red-500 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" /> {error}
-        </span>
-      )}
-      <button 
-        type="button"
-        onClick={handleEnhance}
-        disabled={loading || !text || text.trim().length < 5}
-        className="text-[11px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all py-1 px-2 rounded-lg hover:bg-blue-50/80 active:scale-95"
-      >
-        {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-blue-600" />}
-        {loading ? 'Enhancing...' : '✨ Improve with AI'}
-      </button>
-    </div>
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        {error && (
+          <div className="flex items-center gap-1.5 text-[11px] text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-lg">
+            <AlertCircle className="w-3 h-3 shrink-0" />
+            <span className="truncate max-w-xs">{error}</span>
+            {(errorCode === 'no_key_configured' || errorCode === 'invalid_api_key') && (
+              <button
+                type="button"
+                onClick={() => setIsKeyModalOpen(true)}
+                className="ml-1 text-blue-600 font-bold hover:underline cursor-pointer"
+              >
+                Add Key
+              </button>
+            )}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleEnhance}
+          disabled={loading || !text || text.trim().length < 5}
+          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all py-1 px-2 rounded-lg hover:bg-blue-50/80 active:scale-95 cursor-pointer"
+        >
+          {loading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          )}
+          {loading ? 'Enhancing...' : '✨ Improve with AI'}
+        </button>
+      </div>
+
+      <ApiKeySettingsModal
+        isOpen={isKeyModalOpen}
+        onClose={() => setIsKeyModalOpen(false)}
+      />
+    </>
   );
 }

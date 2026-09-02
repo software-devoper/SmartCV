@@ -180,3 +180,46 @@ export interface UsernameRecord {
   createdAt: number;
 }
 
+export type AIProvider = 'gemini' | 'claude' | 'openai';
+
+export interface AIProviderMeta {
+  id: AIProvider;
+  name: string;
+  shortName: string;
+  tagline: string;
+  placeholder: string;
+  keyPrefix: string;
+  helpUrl: string;
+  helpLabel: string;
+  recommendedModel: string;
+  icon: string;
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+}
+
+export interface UserApiKeyMetadata {
+  provider: AIProvider;
+  maskedKey: string;
+  isDefault: boolean;
+  isValid: boolean;
+  lastValidatedAt?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type AIErrorCode =
+  | 'invalid_api_key'
+  | 'rate_limited'
+  | 'quota_exceeded'
+  | 'provider_error'
+  | 'no_key_configured'
+  | 'unknown_error';
+
+export interface AIErrorResponse {
+  error: string;
+  code: AIErrorCode;
+  provider?: AIProvider;
+}
+
