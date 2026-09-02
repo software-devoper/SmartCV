@@ -201,11 +201,20 @@ export async function setDefaultUserApiKey(
  * Retrieves and decrypts the user's active API key for server execution.
  */
 export async function getUserDecryptedKey(
-  userId: string,
-  preferredProvider?: AIProvider
+  userId?: string,
+  preferredProvider?: AIProvider,
+  directApiKey?: string
 ): Promise<{ provider: AIProvider; decryptedKey: string }> {
+  // If a direct key was provided (e.g. guest mode or local storage fallback)
+  if (directApiKey && directApiKey.trim()) {
+    return {
+      provider: preferredProvider || 'gemini',
+      decryptedKey: directApiKey.trim(),
+    };
+  }
+
   if (!userId) {
-    const err = new Error('You must be signed in to use AI resume generation');
+    const err = new Error('Please sign in or enter an AI API key to use AI resume generation.');
     (err as any).code = 'no_key_configured';
     throw err;
   }

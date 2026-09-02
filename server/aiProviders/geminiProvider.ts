@@ -65,7 +65,7 @@ export async function testGeminiKey(apiKey: string): Promise<{ valid: boolean; e
     });
 
     const res = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.7-flash',
       contents: 'Ping test. Reply with pong.',
       config: { maxOutputTokens: 10, temperature: 0.1 },
     });
@@ -93,7 +93,7 @@ export async function executeGeminiCall(
     httpOptions: { headers: { 'User-Agent': 'smartcv-builder' } },
   });
 
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+  const models = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
   let lastError: any = null;
 
   for (const model of models) {
@@ -117,7 +117,9 @@ export async function executeGeminiCall(
         config,
       });
 
-      return res.text || '';
+      if (res && res.text) {
+        return res.text;
+      }
     } catch (err: any) {
       lastError = err;
       const normalized = normalizeGeminiError(err);
@@ -128,6 +130,8 @@ export async function executeGeminiCall(
         (error as any).provider = 'gemini';
         throw error;
       }
+      // Wait briefly before attempting fallback model
+      await new Promise((resolve) => setTimeout(resolve, 800));
     }
   }
 

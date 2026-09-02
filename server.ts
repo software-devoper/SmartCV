@@ -205,14 +205,15 @@ async function startServer() {
   // 1. Single Field Enhance Endpoint (e.g. Form Editor)
   app.post('/api/gemini/enhance', async (req: Request, res: Response) => {
     try {
-      const { text, intent, userType, provider: requestedProvider } = req.body;
+      const { text, intent, userType, provider: requestedProvider, directApiKey } = req.body;
       const userId = (req as any).userId;
+      const apiKeyHeader = (req.headers['x-api-key'] as string) || directApiKey;
 
       if (!text || !intent) {
         return res.status(400).json({ error: 'Missing text or intent', code: 'invalid_argument' });
       }
 
-      const keyInfo = await getUserDecryptedKey(userId, requestedProvider);
+      const keyInfo = await getUserDecryptedKey(userId, requestedProvider, apiKeyHeader);
       const result = await enhanceSingleField(keyInfo, text, intent, userType);
       res.json(result);
     } catch (error: any) {
@@ -229,8 +230,9 @@ async function startServer() {
   // 2. Full Resume Generation (AI Chat Builder)
   app.post('/api/ai-chat/generate', async (req: Request, res: Response) => {
     try {
-      const { prompt, photoUrl, provider: requestedProvider } = req.body;
+      const { prompt, photoUrl, provider: requestedProvider, directApiKey } = req.body;
       const userId = (req as any).userId;
+      const apiKeyHeader = (req.headers['x-api-key'] as string) || directApiKey;
 
       if (!prompt || typeof prompt !== 'string') {
         return res.status(400).json({
@@ -239,7 +241,7 @@ async function startServer() {
         });
       }
 
-      const keyInfo = await getUserDecryptedKey(userId, requestedProvider);
+      const keyInfo = await getUserDecryptedKey(userId, requestedProvider, apiKeyHeader);
       const result = await generateFullResume(keyInfo, prompt, photoUrl);
       res.json(result);
     } catch (error: any) {
@@ -256,8 +258,9 @@ async function startServer() {
   // 3. General Whole-Resume Modification
   app.post('/api/ai-chat/general-edit', async (req: Request, res: Response) => {
     try {
-      const { currentResume, instruction, history, provider: requestedProvider } = req.body;
+      const { currentResume, instruction, history, provider: requestedProvider, directApiKey } = req.body;
       const userId = (req as any).userId;
+      const apiKeyHeader = (req.headers['x-api-key'] as string) || directApiKey;
 
       if (!currentResume || !instruction) {
         return res.status(400).json({
@@ -266,7 +269,7 @@ async function startServer() {
         });
       }
 
-      const keyInfo = await getUserDecryptedKey(userId, requestedProvider);
+      const keyInfo = await getUserDecryptedKey(userId, requestedProvider, apiKeyHeader);
       const result = await modifyGeneralResume(keyInfo, currentResume, instruction, history || []);
       res.json(result);
     } catch (error: any) {
@@ -283,9 +286,10 @@ async function startServer() {
   // 4. Segment-Specific Targeted Edit
   app.post('/api/ai-chat/segment-edit', async (req: Request, res: Response) => {
     try {
-      const { segmentPath, currentValue, instruction, resumeContext, provider: requestedProvider } =
+      const { segmentPath, currentValue, instruction, resumeContext, provider: requestedProvider, directApiKey } =
         req.body;
       const userId = (req as any).userId;
+      const apiKeyHeader = (req.headers['x-api-key'] as string) || directApiKey;
 
       if (!segmentPath || !instruction) {
         return res.status(400).json({
@@ -294,7 +298,7 @@ async function startServer() {
         });
       }
 
-      const keyInfo = await getUserDecryptedKey(userId, requestedProvider);
+      const keyInfo = await getUserDecryptedKey(userId, requestedProvider, apiKeyHeader);
       const result = await modifySegment(
         keyInfo,
         segmentPath,
@@ -317,8 +321,9 @@ async function startServer() {
   // 5. Prompt Enhancement
   app.post('/api/ai-chat/enhance-prompt', async (req: Request, res: Response) => {
     try {
-      const { text, provider: requestedProvider } = req.body;
+      const { text, provider: requestedProvider, directApiKey } = req.body;
       const userId = (req as any).userId;
+      const apiKeyHeader = (req.headers['x-api-key'] as string) || directApiKey;
 
       if (!text || typeof text !== 'string' || !text.trim()) {
         return res.status(400).json({
@@ -327,7 +332,7 @@ async function startServer() {
         });
       }
 
-      const keyInfo = await getUserDecryptedKey(userId, requestedProvider);
+      const keyInfo = await getUserDecryptedKey(userId, requestedProvider, apiKeyHeader);
       const result = await enhancePromptText(keyInfo, text);
       res.json(result);
     } catch (error: any) {
