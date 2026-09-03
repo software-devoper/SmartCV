@@ -9,6 +9,7 @@ import SegmentEditPopover from './SegmentEditPopover';
 import NoApiKeyModal from './NoApiKeyModal';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 import { ErrorBoundary } from '../common/ErrorBoundary';
+import { ThemeToggle } from '../common/ThemeToggle';
 import {
   createChatSession,
   subscribeToChatSessions,
@@ -625,7 +626,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
     setIsExporting(true);
     try {
       const filename = `${currentResume.fullName || 'Resume'}_CV.pdf`.replace(/\s+/g, '_');
-      await exportToPDF('cv-preview-container', filename);
+      await exportToPDF('cv-export-container', filename);
     } catch (error) {
       console.error('PDF Export Error:', error);
     } finally {
@@ -639,7 +640,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden select-none font-sans">
+    <div className="flex flex-col h-screen bg-slate-950 dark:bg-slate-950 text-slate-100 overflow-hidden select-none font-sans">
       {/* App Top Navigation Bar */}
       <header className="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-3 sm:px-5 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-3">
@@ -700,15 +701,19 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
             </span>
           </button>
 
-          {/* Export PDF Button */}
+          {/* Theme Toggle Button */}
+          <ThemeToggle />
+
+          {/* Download CV Button */}
           <button
             type="button"
             onClick={handleExportPDF}
             disabled={isExporting}
             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            title="Download CV as PDF"
           >
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Download PDF'}</span>
+            <span className="hidden sm:inline">{isExporting ? 'Generating...' : 'Download CV'}</span>
           </button>
 
           {/* User Auth Info / Sign In */}

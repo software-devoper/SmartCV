@@ -118,6 +118,7 @@ export interface CVData {
   extracurriculars: ExtracurricularEntry[];
   references: ReferenceEntry[] | "available_on_request";
   customSections: CustomSection[];
+  activePresetName?: string;
   sectionOrder: string[];
   sectionVisibility: Record<string, boolean>;
 }

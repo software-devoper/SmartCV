@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCVStore } from '../store';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GripVertical, Eye, EyeOff, CheckCircle2, ChevronRight, Sparkles, ArrowRight, WifiOff, FileText } from 'lucide-react';
@@ -56,6 +56,25 @@ export default function ChatPanel() {
   const [activeSectionId, setActiveSectionId] = useState<string>(data.sectionOrder[0] || 'personal');
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
 
+  // Listen for click-to-edit events from preview canvas
+  useEffect(() => {
+    const handleEditSection = (e: any) => {
+      const sectionId = e.detail?.sectionId;
+      if (sectionId) {
+        setActiveSectionId(sectionId);
+        setTimeout(() => {
+          const el = document.getElementById(`editor-section-${sectionId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    };
+
+    window.addEventListener('smartcv-edit-section', handleEditSection);
+    return () => window.removeEventListener('smartcv-edit-section', handleEditSection);
+  }, []);
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const newOrder = Array.from(data.sectionOrder);
@@ -106,20 +125,20 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50 relative">
+    <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-900/50 relative">
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 custom-scrollbar">
         {/* Offline Mode Active Banner */}
         {!isOnline && (
-          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3.5 sm:p-4 text-xs text-amber-900 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 p-3.5 sm:p-4 text-xs text-amber-900 dark:text-amber-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
             <div className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-amber-200/70 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-7 h-7 rounded-lg bg-amber-200/70 dark:bg-amber-900/70 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
                 <WifiOff className="w-3.5 h-3.5" />
               </div>
               <div>
-                <p className="font-bold text-amber-900 text-xs sm:text-sm">
+                <p className="font-bold text-amber-900 dark:text-amber-100 text-xs sm:text-sm">
                   Offline Editor Active
                 </p>
-                <p className="text-[11px] sm:text-xs text-amber-800/90 mt-0.5">
+                <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300 mt-0.5">
                   Your CV data is persistently saved to local browser storage. AI writing is paused until internet is restored.
                 </p>
               </div>
@@ -150,25 +169,26 @@ export default function ChatPanel() {
                     <Draggable key={sectionId} draggableId={sectionId} index={index}>
                       {(provided, snapshot) => (
                         <div
+                          id={`editor-section-${sectionId}`}
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className={`bg-white rounded-2xl border transition-all duration-200 ${
+                          className={`bg-white dark:bg-slate-850 rounded-2xl border transition-all duration-200 ${
                             isActive 
-                              ? 'border-blue-300/80 shadow-md ring-2 ring-blue-500/10' 
-                              : 'border-slate-200/80 hover:border-slate-300 shadow-2xs hover:shadow-sm'
+                              ? 'border-blue-400 dark:border-blue-500 shadow-md ring-2 ring-blue-500/10' 
+                              : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs hover:shadow-sm'
                           } ${snapshot.isDragging ? 'shadow-xl ring-2 ring-blue-500 z-50 scale-[1.01]' : ''}`}
                         >
                           {/* Header / Accordion Toggle */}
                           <div 
                             className={`p-3.5 sm:p-4 flex items-center justify-between cursor-pointer rounded-2xl transition-colors ${
-                              isActive ? 'bg-blue-50/40' : 'hover:bg-slate-50/80'
+                              isActive ? 'bg-blue-50/40 dark:bg-blue-950/30' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/60'
                             }`}
                             onClick={() => setActiveSectionId(isActive ? '' : sectionId)}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <div 
                                 {...provided.dragHandleProps} 
-                                className="text-slate-400 hover:text-slate-700 cursor-grab active:cursor-grabbing p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg shrink-0 transition-colors"
+                                className="text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg shrink-0 transition-colors"
                                 title="Drag to reorder section"
                               >
                                 <GripVertical className="w-4 h-4" />
@@ -180,13 +200,13 @@ export default function ChatPanel() {
                                     animate={{ scale: 1 }}
                                     className="shrink-0"
                                   >
-                                    <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                                    <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                   </motion.div>
                                 ) : (
-                                  <div className="w-5 h-5 rounded-full border-2 border-slate-300 shrink-0" />
+                                  <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0" />
                                 )}
                                 <span className={`font-semibold text-sm sm:text-base tracking-tight truncate ${
-                                  !isVisible ? 'text-slate-400 line-through' : 'text-slate-800'
+                                  !isVisible ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-100'
                                 }`}>
                                   {title}
                                 </span>
@@ -197,17 +217,17 @@ export default function ChatPanel() {
                               <button 
                                 type="button"
                                 onClick={(e) => toggleVisibility(sectionId, e)} 
-                                className={`p-2 rounded-xl transition-all ${
+                                className={`p-2 rounded-xl transition-all cursor-pointer ${
                                   !isVisible 
-                                    ? 'text-slate-400 bg-slate-100 hover:bg-slate-200' 
-                                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                                    ? 'text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700' 
+                                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                                 title={isVisible ? "Hide section in preview" : "Show section in preview"}
                               >
                                 {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                               </button>
-                              <div className="p-1 text-slate-400">
-                                <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isActive ? 'rotate-90 text-blue-600' : ''}`} />
+                              <div className="p-1 text-slate-400 dark:text-slate-500">
+                                <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isActive ? 'rotate-90 text-blue-600 dark:text-blue-400' : ''}`} />
                               </div>
                             </div>
                           </div>
@@ -222,14 +242,14 @@ export default function ChatPanel() {
                                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                                 className="overflow-hidden"
                               >
-                                <div className="p-4 sm:p-6 pt-2 border-t border-slate-100 bg-slate-50/40 rounded-b-2xl">
-                                  {/* AI Assistant Chat Guidance */}
+                                <div className="p-4 sm:p-6 pt-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 rounded-b-2xl">
+                                  {/* AI Assistant Guidance */}
                                   <div className="flex gap-3 mb-5 mt-2 items-start">
-                                    <div className="w-8 h-8 rounded-full bg-blue-100/80 border border-blue-200 flex items-center justify-center shrink-0 shadow-2xs">
-                                      <Sparkles className="w-4 h-4 text-blue-600" />
+                                    <div className="w-8 h-8 rounded-full bg-blue-100/80 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0 shadow-2xs">
+                                      <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                     </div>
-                                    <div className="bg-white p-3.5 sm:p-4 rounded-2xl rounded-tl-none text-slate-700 shadow-2xs border border-slate-200/80 max-w-xl">
-                                      <p className="text-xs sm:text-sm leading-relaxed text-slate-700">
+                                    <div className="bg-white dark:bg-slate-800 p-3.5 sm:p-4 rounded-2xl rounded-tl-none text-slate-700 dark:text-slate-200 shadow-2xs border border-slate-200/80 dark:border-slate-700 max-w-xl">
+                                      <p className="text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-200">
                                         {sectionPrompts[sectionId] || "Please provide the details for this section."}
                                       </p>
                                     </div>
@@ -243,24 +263,24 @@ export default function ChatPanel() {
                                         const nextIndex = (index + 1) % data.sectionOrder.length;
                                         setActiveSectionId(data.sectionOrder[nextIndex]);
                                       }}
-                                      className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm w-full focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all"
+                                      className="bg-white dark:bg-slate-850 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-750 shadow-sm w-full focus-within:border-blue-300 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all"
                                     >
                                       {renderActiveForm(sectionId)}
                                       
-                                      <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-100">
+                                      <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
                                         <button
                                           type="button"
                                           onClick={() => {
                                             const nextIndex = (index + 1) % data.sectionOrder.length;
                                             setActiveSectionId(data.sectionOrder[nextIndex]);
                                           }}
-                                          className="text-xs font-semibold text-slate-400 hover:text-slate-600 tracking-wider uppercase py-2 px-1 transition-colors"
+                                          className="text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 tracking-wider uppercase py-2 px-1 transition-colors cursor-pointer"
                                         >
                                           Skip Section
                                         </button>
                                         <button 
                                           type="submit"
-                                          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                                          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-95 flex items-center gap-1.5 cursor-pointer"
                                         >
                                           Save & Next <ArrowRight className="w-3.5 h-3.5" />
                                         </button>

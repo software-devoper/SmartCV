@@ -26,6 +26,7 @@ import { listUserApiKeysClient } from '../../lib/apiKeyService';
 import { UserApiKeyMetadata } from '../../types';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { PWAInstallButton } from '../common/PWAInstallButton';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 interface AppNavbarProps {
   currentMode?: 'dashboard' | 'chat' | 'builder' | 'templates';
@@ -195,6 +196,9 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
                 <span className="hidden xs:inline">Offline</span>
               </div>
             )}
+
+            {/* Dark / Light Theme Toggle */}
+            <ThemeToggle />
 
             {/* User Account Dropdown (Desktop/Tablet) */}
             <div className="relative hidden sm:block" ref={dropdownRef}>
