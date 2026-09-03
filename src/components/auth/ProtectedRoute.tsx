@@ -28,6 +28,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   if (!user) {
+    // If offline and trying to access the offline resume editor, allow guest access
+    if (typeof navigator !== 'undefined' && !navigator.onLine && (location.pathname === '/builder' || location.pathname === '/templates')) {
+      return <>{children}</>;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

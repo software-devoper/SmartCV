@@ -5,6 +5,9 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicOnlyRoute from './components/auth/PublicOnlyRoute';
 import GoogleUsernameModal from './components/auth/GoogleUsernameModal';
+import OfflineBanner from './components/common/OfflineBanner';
+import PWAUpdateToast from './components/common/PWAUpdateToast';
+import PageTransition from './components/common/PageTransition';
 import LandingPage from './components/landing/LandingPage';
 import LoginPage from './components/auth/LoginPage';
 import SignupPage from './components/auth/SignupPage';
@@ -17,7 +20,9 @@ function ChatWrapper() {
   const navigate = useNavigate();
   return (
     <ErrorBoundary sectionName="AI Chat Builder" showHomeButton>
-      <ChatBuilderPage onSwitchToFormMode={() => navigate('/builder')} />
+      <PageTransition>
+        <ChatBuilderPage onSwitchToFormMode={() => navigate('/builder')} />
+      </PageTransition>
     </ErrorBoundary>
   );
 }
@@ -26,7 +31,9 @@ function BuilderWrapper() {
   const navigate = useNavigate();
   return (
     <ErrorBoundary sectionName="Resume Editor" showHomeButton>
-      <Builder onSwitchToAIChat={() => navigate('/chat')} />
+      <PageTransition>
+        <Builder onSwitchToAIChat={() => navigate('/chat')} />
+      </PageTransition>
     </ErrorBoundary>
   );
 }
@@ -36,6 +43,7 @@ function AppRoutes() {
 
   return (
     <>
+      <OfflineBanner />
       {isGoogleUsernameModalOpen && <GoogleUsernameModal />}
       <Routes>
         {/* Public Landing Page */}
@@ -43,7 +51,9 @@ function AppRoutes() {
           path="/"
           element={
             <ErrorBoundary sectionName="Landing Page">
-              <LandingPage />
+              <PageTransition>
+                <LandingPage />
+              </PageTransition>
             </ErrorBoundary>
           }
         />
@@ -54,7 +64,9 @@ function AppRoutes() {
           element={
             <PublicOnlyRoute>
               <ErrorBoundary sectionName="Sign In">
-                <LoginPage />
+                <PageTransition>
+                  <LoginPage />
+                </PageTransition>
               </ErrorBoundary>
             </PublicOnlyRoute>
           }
@@ -64,7 +76,9 @@ function AppRoutes() {
           element={
             <PublicOnlyRoute>
               <ErrorBoundary sectionName="Sign Up">
-                <SignupPage />
+                <PageTransition>
+                  <SignupPage />
+                </PageTransition>
               </ErrorBoundary>
             </PublicOnlyRoute>
           }
@@ -76,7 +90,9 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <ErrorBoundary sectionName="Dashboard" showHomeButton>
-                <DashboardPage />
+                <PageTransition>
+                  <DashboardPage />
+                </PageTransition>
               </ErrorBoundary>
             </ProtectedRoute>
           }
@@ -102,7 +118,9 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <ErrorBoundary sectionName="Template Gallery" showHomeButton>
-                <TemplateGallery />
+                <PageTransition>
+                  <TemplateGallery />
+                </PageTransition>
               </ErrorBoundary>
             </ProtectedRoute>
           }
@@ -111,6 +129,7 @@ function AppRoutes() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <PWAUpdateToast />
     </>
   );
 }

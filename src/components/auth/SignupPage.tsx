@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { checkUsernameAvailable, isAppInIframe } from '../../lib/authService';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import {
   Sparkles,
   Eye,
@@ -13,11 +14,14 @@ import {
   ShieldCheck,
   Check,
   ExternalLink,
+  WifiOff,
+  FileText,
 } from 'lucide-react';
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const { signup, loginWithGoogle } = useAuth();
+  const isOnline = useOnlineStatus();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -170,6 +174,27 @@ export default function SignupPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        {!isOnline && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs space-y-3">
+            <div className="flex items-start gap-2.5">
+              <WifiOff className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-300 text-sm">You are currently offline</p>
+                <p className="text-slate-300 mt-1 leading-relaxed">
+                  Creating an account requires an active internet connection. You can start creating your resume right now in offline mode.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/builder"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-98"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Build Resume Offline in Editor</span>
+            </Link>
+          </div>
+        )}
+
         <div className="bg-slate-800/80 backdrop-blur-xl py-8 px-6 sm:px-10 shadow-2xl rounded-3xl border border-slate-700/60">
           {/* Google Sign In Button */}
           <button

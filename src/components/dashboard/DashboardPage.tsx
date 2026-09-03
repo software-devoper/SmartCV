@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCVStore } from '../../store';
 import {
@@ -9,12 +10,14 @@ import {
   subscribeToChatSessions,
 } from '../../lib/chatSessionService';
 import { listUserApiKeysClient } from '../../lib/apiKeyService';
+import { getOfflineDrafts, OfflineResumeDraft } from '../../lib/offlineDraftService';
 import { templates } from '../../templates/registry';
 import AppNavbar from '../layout/AppNavbar';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 import { ChatSession, CVData, UserApiKeyMetadata } from '../../types';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { OfflinePresetModal } from '../common/OfflinePresetModal';
+import SkeletonLoader from '../common/SkeletonLoader';
 import {
   Sparkles,
   Bot,
@@ -31,6 +34,7 @@ import {
   CheckCircle2,
   WifiOff,
   AlertTriangle,
+  PenLine,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -61,25 +65,51 @@ export default function DashboardPage() {
     loadKeys();
   }, [user, isOnline]);
 
-  // Real-time user sessions subscription
+  // Real-time user sessions & offline drafts
   useEffect(() => {
-    if (!isOnline) {
-      setIsLoadingSessions(false);
-      return;
-    }
     setIsLoadingSessions(true);
+    
+    // Read local offline drafts
+    const localDrafts = getOfflineDrafts();
+
     const unsub = subscribeToChatSessions(
       (list) => {
-        setSessions(list);
+        // Merge cloud sessions with any local-only unsynced drafts
+        const sessionIds = new Set(list.map((s) => s.id));
+        const extraDrafts: ChatSession[] = localDrafts
+          .filter((d) => !sessionIds.has(d.id))
+          .map((d) => ({
+            id: d.id,
+            userId: d.userId,
+            title: d.title + (d.synced ? '' : ' (Offline Draft)'),
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
+            resumeData: d.resumeData,
+          }));
+
+        setSessions([...extraDrafts, ...list]);
         setIsLoadingSessions(false);
       },
       (err) => {
-        console.error('Failed to load user resume sessions:', err);
+        console.warn('Sessions subscription note (offline cache fallback):', err);
+        // Fallback to local drafts if completely disconnected and uninitialized
+        if (localDrafts.length > 0) {
+          setSessions(
+            localDrafts.map((d) => ({
+              id: d.id,
+              userId: d.userId,
+              title: d.title + ' (Offline Draft)',
+              createdAt: d.createdAt,
+              updatedAt: d.updatedAt,
+              resumeData: d.resumeData,
+            }))
+          );
+        }
         setIsLoadingSessions(false);
       }
     );
     return () => unsub();
-  }, [isOnline]);
+  }, [user, isOnline]);
 
   const handleStartNewAIChat = async () => {
     if (!isOnline) {
@@ -110,7 +140,8 @@ export default function DashboardPage() {
     navigate('/chat');
   };
 
-  const handleOpenSessionInForm = (session: ChatSession) => {
+  const handleOpenSessionInForm = (session: ChatSession, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (session.resumeData) {
       updateData(session.resumeData);
     }
@@ -352,16 +383,17 @@ export default function DashboardPage() {
           </div>
 
           {isLoadingSessions ? (
-            <div className="flex flex-col items-center justify-center p-12 bg-slate-900/50 rounded-3xl border border-slate-800 space-y-3">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-              <p className="text-xs text-slate-400 font-medium">Syncing your resume history...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <SkeletonLoader variant="card" className="h-44" />
+              <SkeletonLoader variant="card" className="h-44" />
+              <SkeletonLoader variant="card" className="h-44" />
             </div>
           ) : sessions.length === 0 ? (
             <div className="p-8 sm:p-12 text-center bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
                 <FileText className="w-6 h-6" />
               </div>
-              <h4 className="text-sm font-bold text-white">No resumes created yet</h4>
+              <h4 className="text-sm sm:text-base font-bold text-white">No resumes created yet</h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
                 Start by chatting with the AI Resume Architect or build one using the step-by-step form editor.
               </p>
@@ -369,7 +401,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleStartNewAIChat}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                  className="touch-target px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
                 >
                   Create Your First Resume
                 </button>
@@ -377,7 +409,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessions.map((session) => {
+              {sessions.map((session, index) => {
                 const updatedDate = new Date(session.updatedAt).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
@@ -386,8 +418,11 @@ export default function DashboardPage() {
                 const template = templates.find((t) => t.id === session.resumeData?.templateId);
 
                 return (
-                  <div
+                  <motion.div
                     key={session.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: index * 0.05 }}
                     onClick={() => handleOpenSessionInChat(session)}
                     className="group bg-slate-900 border border-slate-800 hover:border-blue-500/60 rounded-2xl p-5 shadow-md hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between space-y-4 relative"
                   >
@@ -396,19 +431,29 @@ export default function DashboardPage() {
                         <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors truncate">
                           {session.title || 'Untitled Resume'}
                         </h4>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteSession(session.id, e)}
-                          disabled={deletingId === session.id}
-                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
-                          title="Delete Resume"
-                        >
-                          {deletingId === session.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenSessionInForm(session, e)}
+                            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            title="Edit in Form Mode"
+                          >
+                            <PenLine className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSession(session.id, e)}
+                            disabled={deletingId === session.id}
+                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Resume"
+                          >
+                            {deletingId === session.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
 
                       <p className="text-xs text-slate-400 line-clamp-2">
@@ -419,17 +464,17 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 font-mono">
                         <Clock className="w-3 h-3" />
                         <span>{updatedDate}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
+                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium text-[10px]">
                           {template?.name || 'Classic'}
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

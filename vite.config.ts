@@ -10,7 +10,7 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png', 'favicon-32x32.png', 'favicon-16x16.png'],
         manifest: {
           id: '/',
@@ -45,7 +45,8 @@ export default defineConfig(() => {
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json,webmanifest}'],
+          navigateFallback: '/index.html',
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -53,7 +54,7 @@ export default defineConfig(() => {
               options: {
                 cacheName: 'google-fonts-cache',
                 expiration: {
-                  maxEntries: 10,
+                  maxEntries: 20,
                   maxAgeSeconds: 60 * 60 * 24 * 365,
                 },
                 cacheableResponse: {
@@ -67,8 +68,36 @@ export default defineConfig(() => {
               options: {
                 cacheName: 'gstatic-fonts-cache',
                 expiration: {
-                  maxEntries: 10,
+                  maxEntries: 20,
                   maxAgeSeconds: 60 * 60 * 24 * 365,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: {
+                  maxEntries: 60,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: /\.(?:js|css)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'static-assets-cache',
+                expiration: {
+                  maxEntries: 60,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
                 },
                 cacheableResponse: {
                   statuses: [0, 200],

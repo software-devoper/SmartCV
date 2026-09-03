@@ -143,6 +143,43 @@
         "timestamp"
       ]
     },
+    "ResumeDocument": {
+      "title": "ResumeDocument",
+      "description": "User resume record containing structured CV data, metadata, and sync timestamps",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "number"
+        },
+        "syncedAt": {
+          "type": "number"
+        },
+        "resumeData": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "createdAt",
+        "updatedAt",
+        "resumeData"
+      ]
+    },
     "UserApiKey": {
       "title": "UserApiKey",
       "description": "Encrypted user-managed AI provider API key metadata and ciphertext",
@@ -206,6 +243,10 @@
     "/users/{userId}/chatSessions/{sessionId}/messages/{messageId}": {
       "schema": "ChatMessage",
       "description": "Messages inside a specific chat session"
+    },
+    "/users/{userId}/resumes/{resumeId}": {
+      "schema": "ResumeDocument",
+      "description": "User's saved resume documents and offline synchronized drafts"
     },
     "/users/{userId}/apiKeys/{provider}": {
       "schema": "UserApiKey",

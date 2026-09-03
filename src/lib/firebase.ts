@@ -1,5 +1,13 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  getFirestore,
+  doc,
+  getDocFromServer,
+  Firestore,
+} from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import {
   getAuth,
@@ -36,10 +44,27 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Initialize Firestore
-export const db = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Initialize Firestore with robust multi-tab offline persistence
+function createFirestoreInstance(): Firestore {
+  try {
+    return initializeFirestore(
+      app,
+      {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      },
+      firebaseConfig.firestoreDatabaseId || undefined
+    );
+  } catch (error) {
+    // If already initialized (e.g. during fast refresh or secondary instances)
+    return firebaseConfig.firestoreDatabaseId
+      ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+      : getFirestore(app);
+  }
+}
+
+export const db = createFirestoreInstance();
 
 export const auth = getAuth(app);
 

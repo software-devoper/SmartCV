@@ -1,9 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ChatPanel from './ChatPanel';
 import PreviewPanel from './PreviewPanel';
 import { useCVStore } from '../store';
 import { exportToPDF } from '../utils/pdfExport';
+import { useAuth } from '../contexts/AuthContext';
+import { saveOfflineDraft, getActiveResumeId } from '../lib/offlineDraftService';
+import SyncStatusIndicator from './common/SyncStatusIndicator';
 import {
   Download,
   GraduationCap,
@@ -26,6 +29,7 @@ import { PWAInstallButton } from './common/PWAInstallButton';
 import { OfflinePresetModal } from './common/OfflinePresetModal';
 
 export default function Builder({ onSwitchToAIChat }: { onSwitchToAIChat?: () => void }) {
+  const { user } = useAuth();
   const data = useCVStore(state => state.data);
   const updateData = useCVStore(state => state.updateData);
   const isOnline = useOnlineStatus();
@@ -35,6 +39,20 @@ export default function Builder({ onSwitchToAIChat }: { onSwitchToAIChat?: () =>
   const [isExporting, setIsExporting] = useState(false);
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-persist active CV draft locally with timestamps
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveOfflineDraft({
+        id: getActiveResumeId(),
+        userId: user?.uid || 'guest',
+        title: data.fullName ? `${data.fullName}'s Resume` : 'My Resume',
+        resumeData: data,
+      });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [data, user]);
 
   const isSectionComplete = (id: string) => {
     if (id === 'photo') return !!data.photo?.trim();
@@ -207,6 +225,9 @@ export default function Builder({ onSwitchToAIChat }: { onSwitchToAIChat?: () =>
         {/* Right: Actions */}
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
           
+          {/* Real-time Cloud Sync & Offline Status Indicator */}
+          <SyncStatusIndicator compact className="hidden sm:flex" />
+
           {/* Progress Pill (Desktop) */}
           <div className="hidden xl:flex flex-col items-end">
             <div className="flex items-center gap-2 mb-1">
