@@ -20,9 +20,14 @@
   .touch-target {
     min-width: 44px;
     min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  }
+
+  /* Interactive tactile button styling */
+  .btn-press {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-press:active {
+    transform: scale(0.96);
   }
 
   /* Skeleton Shimmer Animation */

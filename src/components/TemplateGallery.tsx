@@ -110,7 +110,7 @@ export default function TemplateGallery({ onStartWithAIChat }: { onStartWithAICh
       <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="flex items-center gap-3 group">
+            <Link to="/dashboard" className="flex items-center gap-3 group transition-all duration-150 active:scale-95">
               <img
                 src="/android-chrome-192x192.png"
                 alt="SmartCV"
@@ -122,14 +122,14 @@ export default function TemplateGallery({ onStartWithAIChat }: { onStartWithAICh
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all duration-150 active:scale-95 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Dashboard</span>
             </Link>
             <Link
               to="/chat"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-all duration-150 shadow-sm active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Build with AI Chat</span>
@@ -154,7 +154,7 @@ export default function TemplateGallery({ onStartWithAIChat }: { onStartWithAICh
           <div className="bg-slate-200/70 p-1.5 rounded-2xl flex gap-1.5 shadow-inner border border-slate-200/80">
             <button
               onClick={() => setActiveTab('student')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-150 active:scale-95 cursor-pointer ${
                 activeTab === 'student' 
                   ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-900/5' 
                   : 'text-slate-600 hover:text-slate-900'
@@ -165,7 +165,7 @@ export default function TemplateGallery({ onStartWithAIChat }: { onStartWithAICh
             </button>
             <button
               onClick={() => setActiveTab('professional')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-150 active:scale-95 cursor-pointer ${
                 activeTab === 'professional' 
                   ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-900/5' 
                   : 'text-slate-600 hover:text-slate-900'
@@ -193,7 +193,7 @@ export default function TemplateGallery({ onStartWithAIChat }: { onStartWithAICh
               </div>
               <button
                 onClick={() => handleSelect(template.id)}
-                className="w-full py-2 bg-slate-900 group-hover:bg-blue-600 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                className="w-full py-2 bg-slate-900 group-hover:bg-blue-600 text-white rounded-xl font-semibold text-xs transition-all duration-150 active:scale-95 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <span>Use Template</span>
                 <ArrowRight className="w-3.5 h-3.5" />

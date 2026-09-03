@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -40,95 +41,98 @@ function BuilderWrapper() {
 
 function AppRoutes() {
   const { isGoogleUsernameModalOpen } = useAuth();
+  const location = useLocation();
 
   return (
     <>
       <OfflineBanner />
       {isGoogleUsernameModalOpen && <GoogleUsernameModal />}
-      <Routes>
-        {/* Public Landing Page */}
-        <Route
-          path="/"
-          element={
-            <ErrorBoundary sectionName="Landing Page">
-              <PageTransition>
-                <LandingPage />
-              </PageTransition>
-            </ErrorBoundary>
-          }
-        />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* Public Landing Page */}
+          <Route
+            path="/"
+            element={
+              <ErrorBoundary sectionName="Landing Page">
+                <PageTransition>
+                  <LandingPage />
+                </PageTransition>
+              </ErrorBoundary>
+            }
+          />
 
-        {/* Public-only Auth Pages (redirects to /dashboard if already logged in) */}
-        <Route
-          path="/login"
-          element={
-            <PublicOnlyRoute>
-              <ErrorBoundary sectionName="Sign In">
-                <PageTransition>
-                  <LoginPage />
-                </PageTransition>
-              </ErrorBoundary>
-            </PublicOnlyRoute>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <PublicOnlyRoute>
-              <ErrorBoundary sectionName="Sign Up">
-                <PageTransition>
-                  <SignupPage />
-                </PageTransition>
-              </ErrorBoundary>
-            </PublicOnlyRoute>
-          }
-        />
+          {/* Public-only Auth Pages (redirects to /dashboard if already logged in) */}
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <ErrorBoundary sectionName="Sign In">
+                  <PageTransition>
+                    <LoginPage />
+                  </PageTransition>
+                </ErrorBoundary>
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <PublicOnlyRoute>
+                <ErrorBoundary sectionName="Sign Up">
+                  <PageTransition>
+                    <SignupPage />
+                  </PageTransition>
+                </ErrorBoundary>
+              </PublicOnlyRoute>
+            }
+          />
 
-        {/* Protected App Routes (requires auth) */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <ErrorBoundary sectionName="Dashboard" showHomeButton>
-                <PageTransition>
-                  <DashboardPage />
-                </PageTransition>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <ChatWrapper />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/builder"
-          element={
-            <ProtectedRoute>
-              <BuilderWrapper />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/templates"
-          element={
-            <ProtectedRoute>
-              <ErrorBoundary sectionName="Template Gallery" showHomeButton>
-                <PageTransition>
-                  <TemplateGallery />
-                </PageTransition>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected App Routes (requires auth) */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary sectionName="Dashboard" showHomeButton>
+                  <PageTransition>
+                    <DashboardPage />
+                  </PageTransition>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <ChatWrapper />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/builder"
+            element={
+              <ProtectedRoute>
+                <BuilderWrapper />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/templates"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary sectionName="Template Gallery" showHomeButton>
+                  <PageTransition>
+                    <TemplateGallery />
+                  </PageTransition>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
       <PWAUpdateToast />
     </>
   );

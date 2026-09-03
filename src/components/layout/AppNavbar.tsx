@@ -132,7 +132,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
             <nav className="hidden md:flex items-center gap-1 text-xs font-semibold">
               <Link
                 to="/dashboard"
-                className={`px-3 py-2 rounded-xl transition-all ${
+                className={`px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-95 ${
                   location.pathname === '/dashboard'
                     ? 'bg-slate-800 text-white shadow-xs'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -142,7 +142,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
               </Link>
               <Link
                 to="/chat"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-95 ${
                   location.pathname === '/chat'
                     ? 'bg-purple-950/70 text-purple-300 border border-purple-800/60 shadow-xs'
                     : 'text-slate-400 hover:text-purple-300 hover:bg-slate-800/60'
@@ -153,7 +153,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
               </Link>
               <Link
                 to="/builder"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-95 ${
                   location.pathname === '/builder'
                     ? 'bg-slate-800 text-white shadow-xs'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -164,7 +164,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
               </Link>
               <Link
                 to="/templates"
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-95 ${
                   location.pathname === '/templates'
                     ? 'bg-slate-800 text-white shadow-xs'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -201,7 +201,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="touch-target flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-200 transition-all cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-200 transition-all duration-150 active:scale-95 cursor-pointer min-h-[40px]"
                 aria-label="User account menu"
               >
                 {user?.photoURL ? (
@@ -241,7 +241,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
                       <Link
                         to="/dashboard"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl hover:bg-slate-800 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl hover:bg-slate-800 transition-all duration-150 active:scale-98"
                       >
                         <Sparkles className="w-4 h-4 text-blue-400" />
                         <span>Resume Dashboard</span>
@@ -249,7 +249,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
                       <Link
                         to="/chat"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl hover:bg-slate-800 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl hover:bg-slate-800 transition-all duration-150 active:scale-98"
                       >
                         <Bot className="w-4 h-4 text-purple-400" />
                         <span>AI Chat Builder</span>
@@ -260,7 +260,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
                           setIsDropdownOpen(false);
                           setIsApiKeyModalOpen(true);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all duration-150 active:scale-98 cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
                           <Key className="w-4 h-4 text-emerald-400" />
@@ -276,7 +276,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
                           setIsDropdownOpen(false);
                           setIsSettingsModalOpen(true);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all duration-150 active:scale-98 cursor-pointer"
                       >
                         <Settings className="w-4 h-4 text-slate-400" />
                         <span>Account Settings</span>
@@ -287,7 +287,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-150 active:scale-98 cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Log Out</span>
@@ -298,11 +298,11 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
               </AnimatePresence>
             </div>
 
-            {/* Mobile Animated Hamburger Button (3-lines <-> X) */}
+            {/* Mobile Animated Hamburger Button (STRICTLY HIDDEN on desktop/windows md:hidden) */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden touch-target p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-750 transition-colors cursor-pointer"
+              className="flex md:hidden items-center justify-center p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-750 transition-all duration-150 active:scale-95 cursor-pointer min-w-[44px] min-h-[44px]"
               aria-label="Toggle mobile menu"
             >
               <div className="w-5 h-4 relative flex flex-col justify-between items-center">
