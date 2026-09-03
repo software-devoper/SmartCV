@@ -47,9 +47,11 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-600/30 group-hover:scale-105 transition-transform">
-                <Sparkles className="w-5 h-5" />
-              </div>
+              <img
+                src="/android-chrome-192x192.png"
+                alt="SmartCV"
+                className="w-9 h-9 rounded-xl object-contain shadow-md shadow-blue-600/30 group-hover:scale-105 transition-transform"
+              />
               <span className="text-xl font-black tracking-tight text-white">SmartCV</span>
             </Link>
           </div>
@@ -107,7 +109,7 @@ export default function LandingPage() {
             {/* Pill Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold tracking-wide animate-fade-in">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Next-Gen Gemini 3.7 Flash AI Resume Engine</span>
+              <span>Intelligent AI Resume Builder</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
@@ -278,7 +280,7 @@ export default function LandingPage() {
               </div>
               <h4 className="text-base font-bold text-white mb-2">AI Chat Builder</h4>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Describe your background in plain language. Gemini 3.7 Flash automatically organizes your history, education, and achievements into structured sections.
+                Describe your background in plain language. SmartCV automatically organizes your history, education, and achievements into structured sections.
               </p>
             </div>
 
@@ -450,7 +452,7 @@ export default function LandingPage() {
               </div>
               <h4 className="text-base font-bold text-white mb-2">AI Builds Your Resume</h4>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Gemini formats your points with action verbs, quantifies metrics, and populates the live A4 preview in real-time.
+                SmartCV formats your points with action verbs, quantifies metrics, and populates the live A4 preview in real-time.
               </p>
             </div>
 
@@ -492,9 +494,11 @@ export default function LandingPage() {
       <footer className="bg-slate-950 border-t border-slate-900 py-12 text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <Sparkles className="w-4 h-4" />
-            </div>
+            <img
+              src="/android-chrome-192x192.png"
+              alt="SmartCV"
+              className="w-7 h-7 rounded-lg object-contain"
+            />
             <span className="font-bold text-slate-300 text-sm">SmartCV</span>
             <span className="text-slate-600">© 2026 SmartCV AI Inc. All rights reserved.</span>
           </div>

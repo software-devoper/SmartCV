@@ -1,6 +1,6 @@
 {
-  "name": "SmartCV Resume Builder",
-  "description": "Professional AI-assisted CV and resume builder with instant live preview, responsive templates, and PDF export.",
+  "name": "SmartCV — AI-Powered Resume Builder",
+  "description": "Build a professional, ATS-friendly resume in minutes with AI-powered assistance and premium templates.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

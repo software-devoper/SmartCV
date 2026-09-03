@@ -2,7 +2,10 @@ export interface EducationEntry {
   id: string;
   institution: string;
   degree: string;
-  field: string;
+  field?: string;
+  fieldOfStudy?: string;
+  location?: string;
+  honors?: string;
   startDate: string;
   endDate: string;
   gpa?: string;
@@ -12,16 +15,22 @@ export interface ExperienceEntry {
   id: string;
   company: string;
   role: string;
+  location?: string;
+  current?: boolean;
   startDate: string;
   endDate: string;
-  bullets: string[];
+  description?: string;
+  bullets?: string[];
 }
 
 export interface ProjectEntry {
   id: string;
   title: string;
+  role?: string;
+  startDate?: string;
+  endDate?: string;
   description: string; // Used as the main body / bullet points
-  tools: string;
+  tools?: string;
   link?: string;
 }
 
@@ -38,6 +47,7 @@ export interface CertificationEntry {
   date: string;
   expiryDate?: string;
   credentialUrl?: string;
+  credentialId?: string;
 }
 
 export interface AchievementEntry {
@@ -53,7 +63,8 @@ export type LanguageProficiency = 'Basic' | 'Intermediate' | 'Advanced' | 'Nativ
 export interface LanguageEntry {
   id: string;
   language: string;
-  level: LanguageProficiency | string;
+  level?: LanguageProficiency | string;
+  proficiency?: string;
 }
 
 export interface ExtracurricularEntry {

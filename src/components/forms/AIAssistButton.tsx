@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, Check, AlertCircle, Key } from 'lucide-react';
+import { Sparkles, Loader2, Check, AlertCircle, Key, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../../lib/firebase';
 import { getAuthHeaders, getLocalApiKey, getLocalDefaultProvider } from '../../lib/apiKeyService';
 import { enhanceSingleFieldDirectClientSide } from '../../lib/clientAiFallback';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 
 interface AIAssistButtonProps {
@@ -19,6 +20,7 @@ export default function AIAssistButton({
   userType = 'professional',
   onSuggestionAccepted,
 }: AIAssistButtonProps) {
+  const isOnline = useOnlineStatus();
   const [loading, setLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +28,10 @@ export default function AIAssistButton({
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   const handleEnhance = async () => {
+    if (!isOnline) {
+      setError('AI assistance requires an active internet connection.');
+      return;
+    }
     if (!text || text.trim().length < 5) return;
     setLoading(true);
     setError(null);
@@ -157,19 +163,29 @@ export default function AIAssistButton({
             )}
           </div>
         )}
-        <button
-          type="button"
-          onClick={handleEnhance}
-          disabled={loading || !text || text.trim().length < 5}
-          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all py-1 px-2 rounded-lg hover:bg-blue-50/80 active:scale-95 cursor-pointer"
-        >
-          {loading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-          )}
-          {loading ? 'Enhancing...' : '✨ Improve with AI'}
-        </button>
+        {!isOnline ? (
+          <div
+            className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 bg-slate-100/90 px-2 py-1 rounded-lg border border-slate-200/60 select-none cursor-not-allowed"
+            title="AI writing enhancement is unavailable offline. Reconnect to internet to enable."
+          >
+            <WifiOff className="w-3 h-3 text-slate-400" />
+            <span>AI Polish (Offline)</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleEnhance}
+            disabled={loading || !text || text.trim().length < 5}
+            className="text-[11px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all py-1 px-2 rounded-lg hover:bg-blue-50/80 active:scale-95 cursor-pointer"
+          >
+            {loading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            )}
+            {loading ? 'Enhancing...' : '✨ Improve with AI'}
+          </button>
+        )}
       </div>
 
       <ApiKeySettingsModal

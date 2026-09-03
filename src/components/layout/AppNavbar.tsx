@@ -16,10 +16,13 @@ import {
   Loader2,
   Settings,
   Key,
+  WifiOff,
 } from 'lucide-react';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 import { listUserApiKeysClient } from '../../lib/apiKeyService';
 import { UserApiKeyMetadata } from '../../types';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 interface AppNavbarProps {
   currentMode?: 'dashboard' | 'chat' | 'builder' | 'templates';
@@ -29,6 +32,7 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
   const { user, userProfile, logout, deleteAccount } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isOnline = useOnlineStatus();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -104,9 +108,11 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
           {/* Left Brand */}
           <div className="flex items-center gap-6">
             <Link to="/dashboard" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-600/30 group-hover:scale-105 transition-transform">
-                <Sparkles className="w-4 h-4" />
-              </div>
+              <img
+                src="/android-chrome-192x192.png"
+                alt="SmartCV"
+                className="w-8 h-8 rounded-xl object-contain shadow-md shadow-blue-600/30 group-hover:scale-105 transition-transform"
+              />
               <span className="text-lg font-black tracking-tight text-white">SmartCV</span>
             </Link>
 
@@ -159,11 +165,23 @@ export default function AppNavbar({ currentMode }: AppNavbarProps) {
           </div>
 
           {/* Right User & Cloud status */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-emerald-400 font-medium font-mono">
-              <Cloud className="w-3 h-3" />
-              <span>Cloud Synced</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Install PWA App Button */}
+            <div className="hidden md:block">
+              <PWAInstallButton compact />
             </div>
+
+            {isOnline ? (
+              <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-emerald-400 font-medium font-mono">
+                <Cloud className="w-3 h-3" />
+                <span>Cloud Synced</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-800/60 text-[11px] text-amber-300 font-bold font-mono">
+                <WifiOff className="w-3 h-3 text-amber-400" />
+                <span>Offline Mode</span>
+              </div>
+            )}
 
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>

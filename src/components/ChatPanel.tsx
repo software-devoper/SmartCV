@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCVStore } from '../store';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { GripVertical, Eye, EyeOff, CheckCircle2, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
+import { GripVertical, Eye, EyeOff, CheckCircle2, ChevronRight, Sparkles, ArrowRight, WifiOff, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PersonalForm from './forms/PersonalForm';
 import SummaryForm from './forms/SummaryForm';
@@ -15,6 +15,8 @@ import AchievementsForm from './forms/AchievementsForm';
 import LanguagesForm from './forms/LanguagesForm';
 import ReferencesForm from './forms/ReferencesForm';
 import PhotoForm from './forms/PhotoForm';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { OfflinePresetModal } from './common/OfflinePresetModal';
 
 const sectionTitles: Record<string, string> = {
   photo: "Profile Photo",
@@ -50,7 +52,9 @@ const sectionPrompts: Record<string, string> = {
 
 export default function ChatPanel() {
   const { data, updateNested, updateData } = useCVStore();
+  const isOnline = useOnlineStatus();
   const [activeSectionId, setActiveSectionId] = useState<string>(data.sectionOrder[0] || 'personal');
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -104,6 +108,33 @@ export default function ChatPanel() {
   return (
     <div className="flex flex-col h-full bg-slate-50/50 relative">
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 custom-scrollbar">
+        {/* Offline Mode Active Banner */}
+        {!isOnline && (
+          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3.5 sm:p-4 text-xs text-amber-900 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-amber-200/70 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                <WifiOff className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-900 text-xs sm:text-sm">
+                  Offline Editor Active
+                </p>
+                <p className="text-[11px] sm:text-xs text-amber-800/90 mt-0.5">
+                  Your CV data is persistently saved to local browser storage. AI writing is paused until internet is restored.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPresetModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer shrink-0"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Career Presets</span>
+            </button>
+          </div>
+        )}
+
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="sections-list">
             {(provided) => (
@@ -251,6 +282,12 @@ export default function ChatPanel() {
           </Droppable>
         </DragDropContext>
       </div>
+
+      {/* Offline Career Presets Modal */}
+      <OfflinePresetModal
+        isOpen={isPresetModalOpen}
+        onClose={() => setIsPresetModalOpen(false)}
+      />
     </div>
   );
 }

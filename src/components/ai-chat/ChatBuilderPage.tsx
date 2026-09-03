@@ -8,6 +8,7 @@ import AIPreviewPanel from './AIPreviewPanel';
 import SegmentEditPopover from './SegmentEditPopover';
 import NoApiKeyModal from './NoApiKeyModal';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import {
   createChatSession,
   subscribeToChatSessions,
@@ -655,9 +656,11 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
             to="/dashboard"
             className="flex items-center gap-2.5 group cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Bot className="w-5 h-5" />
-            </div>
+            <img
+              src="/android-chrome-192x192.png"
+              alt="SmartCV"
+              className="w-8 h-8 rounded-xl object-contain shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-sm sm:text-base text-white tracking-tight">
@@ -786,17 +789,19 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
               mobileTab === 'chat' ? 'flex' : 'hidden md:flex'
             }`}
           >
-            <AIChatPanel
-              messages={messages}
-              isLoading={isLoading}
-              loadingStatus={loadingStatus}
-              userKeys={userKeys}
-              selectedProvider={selectedProvider}
-              onSelectProvider={setSelectedProvider}
-              onOpenKeySettings={handleOpenKeySettings}
-              onSendMessage={handleSendMessage}
-              onEnhancePrompt={handleEnhancePrompt}
-            />
+            <ErrorBoundary sectionName="AI Conversation Panel">
+              <AIChatPanel
+                messages={messages}
+                isLoading={isLoading}
+                loadingStatus={loadingStatus}
+                userKeys={userKeys}
+                selectedProvider={selectedProvider}
+                onSelectProvider={setSelectedProvider}
+                onOpenKeySettings={handleOpenKeySettings}
+                onSendMessage={handleSendMessage}
+                onEnhancePrompt={handleEnhancePrompt}
+              />
+            </ErrorBoundary>
           </div>
 
           {/* Right Column: Interactive Resume Canvas Preview */}
@@ -805,14 +810,16 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
               mobileTab === 'preview' ? 'flex' : 'hidden md:flex'
             }`}
           >
-            <AIPreviewPanel
-              data={currentResume}
-              isLoading={isLoading}
-              loadingStatus={loadingStatus}
-              activeEditingSegment={segmentEditState.isOpen ? segmentEditState.path : null}
-              onEditSegment={handleOpenSegmentEdit}
-              onTemplateChange={handleTemplateChange}
-            />
+            <ErrorBoundary sectionName="Resume Preview Panel">
+              <AIPreviewPanel
+                data={currentResume}
+                isLoading={isLoading}
+                loadingStatus={loadingStatus}
+                activeEditingSegment={segmentEditState.isOpen ? segmentEditState.path : null}
+                onEditSegment={handleOpenSegmentEdit}
+                onTemplateChange={handleTemplateChange}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       </div>

@@ -111,9 +111,11 @@ export default function TemplateGallery({ onStartWithAIChat }: { onStartWithAICh
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/dashboard" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-xs shadow-blue-500/20 text-white font-bold text-lg group-hover:scale-105 transition-transform">
-                <span>S</span>
-              </div>
+              <img
+                src="/android-chrome-192x192.png"
+                alt="SmartCV"
+                className="w-9 h-9 rounded-xl object-contain shadow-xs group-hover:scale-105 transition-transform"
+              />
               <span className="text-xl font-extrabold tracking-tight text-slate-900">SmartCV</span>
             </Link>
           </div>

@@ -1,7 +1,7 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 
 interface CVRendererProps {
-  TemplateComponent: React.FC<any>;
+  TemplateComponent: React.ComponentType<any>;
   data: any;
 }
 

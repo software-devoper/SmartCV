@@ -14,10 +14,12 @@ import {
   ChevronDown,
   AlertCircle,
   Settings,
+  WifiOff,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { compressImage } from '../../utils/imageCompressor';
 import { AI_PROVIDERS } from '../../lib/aiProviders';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 interface AIChatPanelProps {
   messages: ChatMessage[];
@@ -42,6 +44,7 @@ export default function AIChatPanel({
   onSendMessage,
   onEnhancePrompt,
 }: AIChatPanelProps) {
+  const isOnline = useOnlineStatus();
   const [inputPrompt, setInputPrompt] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -96,6 +99,10 @@ export default function AIChatPanel({
 
   const handleEnhance = async () => {
     if (!inputPrompt.trim() || isEnhancing || isLoading) return;
+    if (!isOnline) {
+      setEnhanceError('AI enhancement is unavailable offline. Please connect to the internet or edit manually.');
+      return;
+    }
     setIsEnhancing(true);
     setEnhanceError(null);
     try {
@@ -120,6 +127,10 @@ export default function AIChatPanel({
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputPrompt.trim() || isLoading || isEnhancing) return;
+    if (!isOnline) {
+      setEnhanceError('AI Chat requires an active internet connection. Please use the Form Editor to create and edit your CV offline.');
+      return;
+    }
 
     const textToSend = inputPrompt.trim();
     const photoToSend = photoPreview || undefined;
@@ -264,7 +275,7 @@ export default function AIChatPanel({
                 AI Resume Architect
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-                Describe your background, skills, or target role in plain text. Powered by your choice of <strong>Google Gemini</strong>, <strong>Anthropic Claude</strong>, or <strong>OpenAI</strong>.
+                Describe your career journey, achievements, or target position. SmartCV will structure, quantify, and format everything directly onto your live resume.
               </p>
             </div>
 
@@ -400,6 +411,13 @@ export default function AIChatPanel({
 
       {/* Persistent Bottom Input Bar */}
       <div className="p-3 sm:p-4 border-t border-slate-200/80 bg-white/95 backdrop-blur-md relative z-20">
+        {!isOnline && (
+          <div className="mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center gap-2 shadow-2xs">
+            <WifiOff className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>You are offline. AI Chat is disabled. Please switch to the Form Editor to create and edit your CV offline.</span>
+          </div>
+        )}
+
         {/* Photo Upload Attachment Tag */}
         {photoPreview && (
           <div className="mb-2 flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl w-fit text-xs text-blue-700">

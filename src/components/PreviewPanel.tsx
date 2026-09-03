@@ -4,6 +4,7 @@ import { templates } from '../templates/registry';
 import { ZoomIn, ZoomOut, LayoutTemplate, RotateCcw, Maximize2 } from 'lucide-react';
 import TemplateGalleryModal from './TemplateGalleryModal';
 import CVRenderer from './CVRenderer';
+import { ErrorBoundary } from './common/ErrorBoundary';
 
 export default function PreviewPanel() {
   const { data, resetData } = useCVStore();
@@ -114,7 +115,9 @@ export default function PreviewPanel() {
           }}
           id="cv-export-container"
         >
-          <CVRenderer TemplateComponent={TemplateComponent} data={data} />
+          <ErrorBoundary sectionName="Resume Preview Canvas">
+            <CVRenderer TemplateComponent={TemplateComponent} data={data} />
+          </ErrorBoundary>
         </div>
       </div>
 

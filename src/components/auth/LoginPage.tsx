@@ -108,9 +108,11 @@ export default function LoginPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10">
         <Link to="/" className="inline-flex items-center gap-2.5 group mb-6">
-          <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5" />
-          </div>
+          <img
+            src="/android-chrome-192x192.png"
+            alt="SmartCV"
+            className="w-10 h-10 rounded-2xl object-contain shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform"
+          />
           <span className="text-2xl font-extrabold tracking-tight text-white">SmartCV</span>
         </Link>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">

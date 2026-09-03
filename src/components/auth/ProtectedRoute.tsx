@@ -9,10 +9,15 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white font-sans">
         <div className="relative flex items-center justify-center">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center animate-pulse">
-            <Sparkles className="w-6 h-6 text-blue-400 animate-spin" style={{ animationDuration: '3s' }} />
+          <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center animate-pulse p-2.5">
+            <img
+              src="/android-chrome-192x192.png"
+              alt="SmartCV Loading"
+              className="w-full h-full object-contain animate-bounce"
+              style={{ animationDuration: '2s' }}
+            />
           </div>
         </div>
         <p className="mt-4 text-xs font-semibold text-slate-400 tracking-wide">
