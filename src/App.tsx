@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicOnlyRoute from './components/auth/PublicOnlyRoute';
@@ -144,9 +143,7 @@ export default function App() {
     <ErrorBoundary showHomeButton>
       <BrowserRouter>
         <AuthProvider>
-          <ThemeProvider>
-            <AppRoutes />
-          </ThemeProvider>
+          <AppRoutes />
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

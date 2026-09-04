@@ -7,16 +7,8 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
-  Sparkles,
   LayoutTemplate,
   ChevronDown,
-  MousePointerClick,
-  User,
-  Briefcase,
-  GraduationCap,
-  Wrench,
-  FolderGit2,
-  Award,
 } from 'lucide-react';
 import TemplateGalleryModal from '../TemplateGalleryModal';
 
@@ -29,23 +21,13 @@ interface AIPreviewPanelProps {
   onTemplateChange: (templateId: string) => void;
 }
 
-const quickAISegments = [
-  { path: 'personal', title: 'Header & Contact', icon: User, getData: (d: CVData) => `${d.fullName || ''} - ${d.title || ''}` },
-  { path: 'summary', title: 'Career Summary', icon: Sparkles, getData: (d: CVData) => d.summary || '' },
-  { path: 'experience', title: 'Work Experience', icon: Briefcase, getData: (d: CVData) => d.experience || [] },
-  { path: 'education', title: 'Education', icon: GraduationCap, getData: (d: CVData) => d.education || [] },
-  { path: 'skills', title: 'Skills & Tech', icon: Wrench, getData: (d: CVData) => d.skills || [] },
-  { path: 'projects', title: 'Key Projects', icon: FolderGit2, getData: (d: CVData) => d.projects || [] },
-  { path: 'certifications', title: 'Certifications', icon: Award, getData: (d: CVData) => d.certifications || [] },
-];
-
 export default function AIPreviewPanel({
   data,
   isLoading,
   loadingStatus,
-  activeEditingSegment,
+  activeEditingSegment: _activeEditingSegment,
   onEditSegment,
-  onTemplateChange,
+  onTemplateChange: _onTemplateChange,
 }: AIPreviewPanelProps) {
   const [zoom, setZoom] = useState(0.85);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -110,27 +92,27 @@ export default function AIPreviewPanel({
   };
 
   return (
-    <div className="flex flex-col h-full relative bg-slate-200/90 dark:bg-slate-950 select-none overflow-hidden transition-colors duration-200">
+    <div className="flex flex-col h-full relative bg-slate-950 select-none overflow-hidden">
       {/* Floating Toolbar */}
       <div className="absolute top-3 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/10 flex items-center gap-2 sm:gap-3 pointer-events-auto transition-all">
+        <div className="bg-slate-900/95 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-slate-800 shadow-xl flex items-center gap-2 sm:gap-3 pointer-events-auto transition-all">
           <button
             type="button"
             onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(2))))}
-            className="p-1 sm:p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            className="p-1 sm:p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Zoom Out"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
 
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-200 w-10 text-center font-mono">
+          <span className="text-xs font-bold text-slate-200 w-10 text-center font-mono">
             {Math.round(zoom * 100)}%
           </span>
 
           <button
             type="button"
             onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.1).toFixed(2))))}
-            className="p-1 sm:p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            className="p-1 sm:p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="w-4 h-4" />
@@ -139,21 +121,21 @@ export default function AIPreviewPanel({
           <button
             type="button"
             onClick={computeFitScale}
-            className="p-1 sm:p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors hidden sm:inline-flex cursor-pointer"
+            className="p-1 sm:p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors hidden sm:inline-flex cursor-pointer"
             title="Fit to Width"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+          <div className="w-px h-4 bg-slate-800" />
 
           {/* Template Switcher */}
           <button
             type="button"
             onClick={() => setIsTemplateModalOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-tight px-2 py-1 rounded-lg hover:bg-blue-50/50 dark:hover:bg-blue-950/40 cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-200 hover:text-blue-400 transition-colors uppercase tracking-tight px-2 py-1 rounded-lg hover:bg-blue-950/40 cursor-pointer"
           >
-            <LayoutTemplate className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <LayoutTemplate className="w-3.5 h-3.5 text-blue-400" />
             <span className="hidden sm:inline">{selectedTemplate.name}</span>
             <span className="sm:hidden">Template</span>
             <ChevronDown className="w-3 h-3 text-slate-400" />
@@ -161,56 +143,27 @@ export default function AIPreviewPanel({
         </div>
       </div>
 
-      {/* Quick AI Segment Buttons Toolbar */}
-      <div className="absolute top-14 sm:top-16 left-0 right-0 flex justify-center z-20 pointer-events-none px-4">
-        <div className="bg-slate-900/90 dark:bg-slate-850/95 text-white backdrop-blur-md px-3 py-1 rounded-full shadow-lg border border-slate-700/70 flex items-center gap-1 pointer-events-auto text-[11px] overflow-x-auto max-w-full">
-          <span className="text-blue-400 text-[10px] uppercase font-bold flex items-center gap-1 shrink-0 mr-1">
-            <MousePointerClick className="w-3 h-3 text-blue-400 animate-pulse" /> Edit Segment with AI:
-          </span>
-          {quickAISegments.map((seg) => {
-            const Icon = seg.icon;
-            const isSelected = activeEditingSegment === seg.path;
-            return (
-              <button
-                key={seg.path}
-                type="button"
-                onClick={() => onEditSegment(seg.path, seg.title, seg.getData(data))}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold transition active:scale-95 cursor-pointer shrink-0 ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-                title={`Edit ${seg.title} with targeted AI prompts`}
-              >
-                <Icon className="w-3 h-3 text-blue-300" />
-                <span>{seg.title}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* A4 Preview Canvas Container */}
       <div
-        className="flex-1 overflow-auto p-4 sm:p-8 lg:p-12 pt-24 sm:pt-28 flex justify-center custom-scrollbar relative"
+        className="flex-1 overflow-auto p-4 sm:p-8 lg:p-12 pt-16 sm:pt-20 flex justify-center custom-scrollbar relative"
         ref={containerRef}
       >
         <div
-          className="origin-top transition-transform duration-150 ease-out shadow-2xl bg-white rounded-xs mb-12 border border-slate-300/60 shrink-0 cursor-pointer group/canvas relative"
+          className="origin-top transition-transform duration-150 ease-out shadow-2xl bg-white rounded-xs mb-12 border border-slate-800 shrink-0 cursor-pointer group/canvas relative hover:ring-2 hover:ring-blue-500/50"
           style={{
             transform: `scale(${zoom})`,
             width: '210mm',
             minHeight: '297mm',
-            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
           }}
           id="cv-export-container"
           onClick={handleCanvasClick}
-          title="Click anywhere on this resume to edit that section with AI"
+          title="Click any section on the resume to edit with AI"
         >
           {isLoading && !hasAnyData ? (
             <ResumeShimmerLoader statusText={loadingStatus} />
           ) : (
-            <div id="cv-renderer-root" className="relative">
+            <div id="cv-renderer-root" className="relative text-slate-900">
               <CVRenderer TemplateComponent={TemplateComponent} data={data} />
             </div>
           )}

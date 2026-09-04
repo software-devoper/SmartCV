@@ -9,7 +9,6 @@ import SegmentEditPopover from './SegmentEditPopover';
 import NoApiKeyModal from './NoApiKeyModal';
 import ApiKeySettingsModal from '../settings/ApiKeySettingsModal';
 import { ErrorBoundary } from '../common/ErrorBoundary';
-import { ThemeToggle } from '../common/ThemeToggle';
 import {
   createChatSession,
   subscribeToChatSessions,
@@ -701,9 +700,6 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
             </span>
           </button>
 
-          {/* Theme Toggle Button */}
-          <ThemeToggle />
-
           {/* Download CV Button */}
           <button
             type="button"
@@ -790,7 +786,7 @@ export default function ChatBuilderPage({ onSwitchToFormMode }: ChatBuilderPageP
 
           {/* Left Column: Chat Conversation */}
           <div
-            className={`w-full md:w-1/2 lg:w-[45%] h-full border-r border-slate-800 bg-white flex flex-col overflow-hidden ${
+            className={`w-full md:w-1/2 lg:w-[45%] h-full border-r border-slate-800 bg-slate-900 flex flex-col overflow-hidden ${
               mobileTab === 'chat' ? 'flex' : 'hidden md:flex'
             }`}
           >
